@@ -335,7 +335,7 @@ struct State{
     int machine_count = 0;
     bitset<N*N> is_machines = 0;
     bitset<N*N> is_vegs = 0;
-    bitset<N*N> is_kansetsu = 0;
+    bitset<N*N> is_kansetsu_ = 0;
     int reserve_money = 0;
     int max_connect_count = 0;
     int adj_pena = 0;
@@ -444,6 +444,10 @@ struct State{
         }
     }
 
+    bool is_kansetsu(const Pos& p) const{
+        return is_kansetsu_[p.idx()];
+    }
+
     void do_action(const Action& action, const vector<Pos>& machines){
         assert(can_action(action));
         if(action.kind == BUY){
@@ -474,8 +478,10 @@ struct State{
         do_turn_end(get_machines());
     }
 
-    void dfs(const Pos& p, bitset<N*N>& checked, int& count, int& sum_val, int& sum_reserve_val){
+    void dfs(const Pos& p, bitset<N*N>& checked, int& count, int& sum_val, int& sum_reserve_val, vector<int>& ord, vector<int>& low){
+        const bool is_root = count == 0;
         assert(p.in_range());
+        ord[p.idx()] = count;
         count++;
         if(is_veg(p)){
             sum_val += TP2V[t][p.idx()];
@@ -490,12 +496,24 @@ struct State{
             if(!pp.in_range()) continue;
             if(!is_machine(pp)) continue;
             adj_count++;
-            if(checked[pp.idx()]) continue;
+            if(checked[pp.idx()]){
+                //後退辺
+                chmin(low[p.idx()], ord[pp.idx()]);
+                continue;
+            }
             checked[pp.idx()] = true;
-            dfs(pp, checked, count, sum_val, sum_reserve_val);
+            dfs(pp, checked, count, sum_val, sum_reserve_val, ord, low);
+            chmin(low[p.idx()], low[pp.idx()]);
+            if(!is_root && ord[p.idx()] <= low[pp.idx()]){
+                is_kansetsu_[p.idx()] = true;
+            }
         }
         if(adj_count >= 3){
             adj_pena++;
+        }
+        //Todo:根の関節点判定にバグないかチェック
+        if(is_root && adj_pena >= 2){
+            is_kansetsu_[p.idx()] = true;
         }
     }
 
@@ -505,13 +523,16 @@ struct State{
         max_connect_count = 0;
         adj_pena = 0;
 
+        vector<int> ord(N*N), low(N*N, INF);
+        is_kansetsu_ = 0;
+
         for(const auto& base_p : machines){
             if(checked[base_p.idx()]) continue;
             checked[base_p.idx()] = true;
             int count = 0;
             int sum_val = 0;
             int sum_reserve_val = 0;
-            dfs(base_p, checked, count, sum_val, sum_reserve_val);
+            dfs(base_p, checked, count, sum_val, sum_reserve_val, ord, low);
             money += count * sum_val;
             reserve_money += count * sum_val;
             chmax(max_connect_count, count);
