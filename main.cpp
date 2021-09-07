@@ -673,7 +673,14 @@ struct BeamSearcher{
                     if(before_state.is_machine(p)) continue;
                     //Todo:取得済みかどうかのチェック
                     //Todo:累積のほうが良いかも？
-                    const int val = TP2V[t][p.idx()];
+                    const int val = [&](){
+                        if(t < 500 || before_state.turn() + 3 <= t){
+                            return TP2V[t][p.idx()];
+                        }else{
+                            //Todo:先読みターン数
+                            return TP2V_ruiseki[min(T, before_state.turn() + 3)][p.idx()] - TP2V_ruiseki[t][p.idx()] + TP2V[t][p.idx()];
+                        }
+                    }();
 
                     const Pos&& pp1 = p + UD;
                     if(pp1.in_range() && dp2[p.idx()] < dp[pp1.idx()] + val){
@@ -907,7 +914,7 @@ void solve(){
     cout<<bs_er.solve()<<endl;
     cerr<<timer.ms()<<"[ms]"<<endl;
     cerr<<"final money:"<<debug_final_money<<endl;
-    cerr<<"final money * 50:"<<debug_final_money * 50<<endl;
+    cerr<<"score:"<<debug_final_money * 50<<endl;
 }
 
 int main(void){
