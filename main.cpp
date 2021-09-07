@@ -539,7 +539,7 @@ struct State{
         // if(count() >= 4 && max_connect_count != count()){
         //     eval = -1;
         // }
-        eval -= adj_pena * 10;
+        eval -= adj_pena * 1000;
         return eval;
     }
 
