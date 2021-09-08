@@ -42,7 +42,7 @@ using namespace std;
 typedef pair<int, int> Pii;
 typedef pair<ll, ll> Pll;
 constexpr int N = 16, M = 5000, T = 1000;
-typedef bitset<N*N> HASH_TYPE;
+typedef uint32_t HASH_TYPE;
 
 int MAX_BUY_T = 800;
 int SAKIYOMI_ERASE = 5;
@@ -73,7 +73,8 @@ int START_SAKIYOMI = 500;
 // int START_SAKIYOMI = 979;
 
 const int MAX_HOHABA = 6;
-const int BW = 200;
+const int BW = 100;
+constexpr int MAX_DEPTH = 6;
 
 uint32_t xorshift(){
     static uint32_t x = 123456789;
@@ -319,16 +320,24 @@ struct Action{
 
 ostream& operator<<(ostream& os, const vector<Action>& actions){
     rep(i, actions.size()){
-        const auto& action = actions[i];
-        if(action.kind == BUY){
-            os << action.to.to_answer();
-        }else if(action.kind == MOVE){
-            os << action.from.to_answer() << " " << action.to.to_answer();
+        //途中まで出力してデバッグしたい時用
+        if(true || i <= 631){
+            const auto& action = actions[i];
+            if(action.kind == BUY){
+                os << action.to.to_answer();
+            }else if(action.kind == MOVE){
+                os << action.from.to_answer() << " " << action.to.to_answer();
+            }else{
+                os << "-1";
+            }
+            if(i+1 != actions.size()){
+                os << endl;
+            }
         }else{
-            os << "-1";
-        }
-        if(i+1 != actions.size()){
-            os << endl;
+            os<<-1;
+            if(i+1 != actions.size()){
+                os<<endl;
+            }
         }
     }
     return os;
@@ -464,6 +473,7 @@ struct State{
             }
             rep(i, machines.size()){
                 const auto& p = machines[i];
+                last_pass[p.idx()]++;
                 //turn() + iに降ってくる報酬はもらえない換算だったが貰えるようになった
                 const int ttt = turn() + i;
                 if(ttt >= T-1) break;
@@ -503,6 +513,65 @@ struct State{
         t++;
     }
 
+    void dfs(vector<pair<vector<Action>, int>>& best_actions, vector<Action>& actions, const int depth, const int eval_sum, const int max_depth){
+        if(depth > 0 && best_actions[depth-1].second < eval_sum){
+            best_actions[depth-1].second = eval_sum;
+            best_actions[depth-1].first = actions;
+        }
+        if(depth == max_depth){
+            return;
+        }
+        //Todo:簡略化
+        //Todo:買えるなら買う
+        const Pos head = get_head();
+        for(const auto& dir : DIRS4){
+            Pos&& to = head + dir;
+            if(!to.in_range()) continue;
+            if(is_machine(to)) continue;
+
+            //turn() + count - 1の終了時まで存在
+            const auto calc_eval = [&](const Pos& to){
+                int eval = 0;
+                //即時報酬
+                eval += get_veg_value(to);
+                //将来報酬
+                int now = turn();
+                while(true){
+                    const int next = TP2NS[now][to.idx()];
+                    //Todo:戦略的パスやBUYによる時間稼ぎを考慮
+                    if(next >= turn()){
+                        break;
+                    }
+                    const int val = TP2V[next][to.idx()];
+                    eval += val;
+                    now = next;
+                }
+                return eval;
+            };
+            const int eval = calc_eval(to);
+
+            Action action;
+            action.kind = MOVE;
+            action.from = get_tail();
+            action.to = to;
+            actions.emplace_back(action);
+
+            machines.pop_front();
+            machines.emplace_back(action.to);
+
+            t++;
+
+            dfs(best_actions, actions, depth+1, eval_sum+eval, max_depth);
+
+            t--;
+
+            machines.pop_back();
+            machines.emplace_front(action.from);
+
+            actions.pop_back();
+        }
+    }
+
     int evaluate() const{
         int eval = 0;
         eval += count() * (t < MAX_BUY_T ? 1e9 / (N*N) : 0);
@@ -511,7 +580,7 @@ struct State{
     }
 
     HASH_TYPE hash() const{
-        return is_machines;
+        return get_head().idx();
     }
 };
 
@@ -581,7 +650,21 @@ struct BeamSearcher{
             vec_pq[t].emplace_back(eval, logs.size());
             logs.emplace_back(std::move(after_state), std::forward<Action>(action), before_idx, eval);
         };
-        const auto push_actions = [&](vector<Action>&& actions, State&& after_state, const int bonus = 0){
+        const auto push_actions = [&](vector<Action>&& actions, const int bonus = 0){
+            State after_state = before_state;
+            for(auto& action : actions){
+                //Todo:vector<Pos> actionsを渡す形で実装し直す
+                if(action.kind == MOVE && after_state.can_buy()){
+                    action.kind = BUY;
+                }
+                //Todo:これはその場しのぎ
+                action.from = after_state.get_tail();
+                //Todo:BUYに変わったことによりタイミングがずれて動けなくなることへの対処
+                if(!after_state.can_action(action)){
+                    return;
+                }
+                after_state.do_action(action);
+            }
             const int t = after_state.turn();
             assert(t <= T);
             const Eval eval = after_state.evaluate() + bonus;
@@ -619,23 +702,17 @@ struct BeamSearcher{
             return;
         }
 
-        const Pos& head = before_state.get_head();
-        for(const auto& dir : DIRS4){
-            Pos&& to = head + dir;
-            if(!to.in_range()) continue;
-            if(before_state.is_machine(to)) continue;
-
-            Action action;
-            action.to = std::forward<Pos>(to);
-
-            if(before_state.can_buy() && before_state.turn() <= MAX_BUY_T){
-                action.kind = BUY;
-            }else{
-                action.kind = MOVE;
-                action.from = before_state.get_tail();
-            }
-
-            push_action(std::move(action));
+        const int depth = min(MAX_DEPTH, T - before_state.turn());
+        vector<pair<vector<Action>, int>> results(depth);
+        State state = before_state;
+        {
+            vector<Action> actions;
+            state.dfs(results, actions, 0, 0, depth);
+        }
+        rep(i,results.size()){
+            auto&& actions = results[i].first;
+            if(actions.size() == 0) continue;
+            push_actions(std::move(actions));
         }
     }
 
