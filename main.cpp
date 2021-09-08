@@ -102,9 +102,18 @@ public:
 
 Timer timer, timer1, timer2, timer3, timer4, timer5;
 
-enum Dir{
-    U,D,L,R,NONE
+struct Dir{
+    int y,x;
+
+    bool operator==(const Dir& other) const{
+        return y == other.y && x == other.x;
+    }
 };
+constexpr Dir U = {-1, 0};
+constexpr Dir D = {1, 0};
+constexpr Dir L = {0, -1};
+constexpr Dir R = {0, 1};
+constexpr Dir NONE = {0, 0};
 
 Dir operator~(const Dir& d){
     if(d == U){
@@ -169,19 +178,7 @@ struct Pos{
     }
 
     Pos operator+ (Dir d) const{
-        if(d == U){
-            return {y-1, x};
-        }else if(d == D){
-            return {y+1, x};
-        }else if(d == L){
-            return {y, x-1};
-        }else if(d == R){
-            return {y, x+1};
-        }else if(d == NONE){
-            return {y, x};
-        }
-
-        throw invalid_argument("Posに加えるDirが適切ではありません");
+        return {y + d.y, x + d.x};
     }
 
     Pos operator+ (const Pos& p) const{
@@ -189,19 +186,8 @@ struct Pos{
     }
 
     void operator+= (Dir d){
-        if(d == U){
-            y -= 1;
-        }else if(d == D){
-            y += 1;
-        }else if(d == L){
-            x -= 1;
-        }else if(d == R){
-            x += 1;
-        }else if(d == NONE){
-
-        }else{
-            throw invalid_argument("Posに+=するDirが適切ではありません");
-        }
+        y += d.y;
+        x += d.x;
     }
 
     Dir operator- (const Pos& from) const{
@@ -222,19 +208,8 @@ struct Pos{
     }
 
     void operator-= (Dir d){
-        if(d == D){
-            y -= 1;
-        }else if(d == U){
-            y += 1;
-        }else if(d == R){
-            x -= 1;
-        }else if(d == L){
-            x += 1;
-        }else if(d == NONE){
-
-        }else{
-            throw invalid_argument("Posに-=するDirが適切ではありません");
-        }
+        y -= d.y;
+        x -= d.x;
     }
 
     bool operator==(const Pos& p) const{
