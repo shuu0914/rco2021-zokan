@@ -483,6 +483,7 @@ struct State{
         assert(p.in_range());
         ord[p.idx()] = count;
         count++;
+        int root_count = 0;
         if(is_veg(p)){
             sum_val += TP2V[t][p.idx()];
             is_vegs[p.idx()] = false;
@@ -501,6 +502,7 @@ struct State{
                 chmin(low[p.idx()], ord[pp.idx()]);
                 continue;
             }
+            root_count++;
             checked[pp.idx()] = true;
             dfs(pp, checked, count, sum_val, sum_reserve_val, ord, low);
             chmin(low[p.idx()], low[pp.idx()]);
@@ -512,7 +514,7 @@ struct State{
             adj_pena++;
         }
         //Todo:根の関節点判定にバグないかチェック
-        if(is_root && adj_pena >= 2){
+        if(is_root && root_count >= 2){
             is_kansetsu_[p.idx()] = true;
         }
     }
@@ -762,6 +764,7 @@ struct BeamSearcher{
                         action.to = to;
                     }else{
                         const auto evaluate = [&](const Pos& from){
+                            if(from.manhattan(to) == 1) return -INF;
                             constexpr int sakiyomi = 5;
                             const int t = after_state.turn();
                             const int saki_t = min(t, T);
