@@ -342,6 +342,7 @@ struct State{
     int reserve_money = 0;
     int max_connect_count = 0;
     int adj_pena = 0;
+    // int mitsu_pena = 0;
 
     State(){
         for(const auto& p : T2P[0]){
@@ -513,6 +514,19 @@ struct State{
                 is_kansetsu_[p.idx()] = true;
             }
         }
+
+        // int adj8_count = adj_count;
+        // for(auto&& dy : {-1,1}){
+        //     for(auto&& dx : {-1,1}){
+        //         const Pos&& pp = p + Pos(dy,dx);
+        //         if(!pp.in_range()) continue;
+        //         adj8_count += is_machine(pp);
+        //     }
+        // }
+        // if(adj8_count >= 4){
+            // mitsu_pena += 1;
+        // }
+
         if(adj_count >= 3){
             adj_pena++;
         }
@@ -527,6 +541,7 @@ struct State{
         reserve_money = 0;
         max_connect_count = 0;
         adj_pena = 0;
+        // mitsu_pena = 0;
 
         vector<int> ord(N*N), low(N*N, INF);
         is_kansetsu_ = 0;
@@ -566,6 +581,7 @@ struct State{
         //     eval = -1;
         // }
         eval -= adj_pena * 1000;
+        // eval -= mitsu_pena * mitsu_pena * mitsu_pena * get_cost() * 0.01;
         return eval;
     }
 
