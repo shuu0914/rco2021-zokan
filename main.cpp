@@ -55,6 +55,20 @@ int SAKIYOMI_TURN = 3;
 
 int START_SAKIYOMI = 500;
 
+// int MAX_BUY_T = 844;
+// int SAKIYOMI_ERASE = 7;
+// int MAX_SAKIYOMI_DFS = 1;
+// int ADJ_PENA_THRESHOLD = 4;
+// int CENTER_ERASE_PENALTY = 10000;
+
+// float CENTER_BONUS = 0.0756;
+// float MAIN_MONEY_WEIGHT = 3.54;
+// float ADJ_PENALTY_WEIGHT = 742.23;
+// int NOMUST_CONNECT_THRESHOLD = 2;
+// int SAKIYOMI_TURN = 0;
+
+// int START_SAKIYOMI = 979;
+
 const int MAX_HOHABA = 6;
 const int BW = 10;
 
