@@ -41,6 +41,23 @@ using namespace std;
 typedef pair<int, int> Pii;
 typedef pair<ll, ll> Pll;
 
+int MAX_BUY_T = 800;
+int SAKIYOMI_ERASE = 5;
+int MAX_SAKIYOMI_DFS = 2;
+int ADJ_PENA_THRESHOLD = 3;
+int CENTER_ERASE_PENALTY = 1000000;
+
+float CENTER_BONUS = 0.1;
+float MAIN_MONEY_WEIGHT = 2.0;
+float ADJ_PENALTY_WEIGHT = 1000.0;
+int NOMUST_CONNECT_THRESHOLD = 3;
+int SAKIYOMI_TURN = 3;
+
+int START_SAKIYOMI = 500;
+
+const int MAX_HOHABA = 6;
+const int BW = 10;
+
 uint32_t xorshift(){
     static uint32_t x = 123456789;
     static uint32_t y = 362436069;
@@ -282,10 +299,6 @@ struct Action{
     Pos to, from;
 };
 
-constexpr int MAX_BUY_T = 800;
-constexpr int MAX_HOHABA = 6;
-const int BW = 10;
-
 ostream& operator<<(ostream& os, const vector<Action>& actions){
     rep(i, actions.size()){
         const auto& action = actions[i];
@@ -458,8 +471,8 @@ struct State{
     void dfs(const Pos& p, bitset<N*N>& checked, int& count, int& sum_val, int& sum_reserve_val, vector<int>& ord, vector<int>& low){
         const bool is_root = count == 0;
         assert(p.in_range());
-        center_count += p.x == 7;
-        center_count += p.y == 7;
+        center_count += p.x == N/2;
+        center_count += p.y == N/2;
         // chmin(min_x, p.x);
         // chmax(max_x, p.x);
         // chmin(min_y, p.y);
@@ -471,9 +484,9 @@ struct State{
             sum_val += TP2V[t][p.idx()];
             is_vegs[p.idx()] = false;
         }
-        //Todo:コアレス
-        const int sakiyomi = min(2, this->count() - 1);
-        sum_reserve_val += TP2V_ruiseki[min(T, t+sakiyomi)][p.idx()] - TP2V_ruiseki[t][p.idx()];
+
+        const int sakiyomi_dfs = min(MAX_SAKIYOMI_DFS, this->count() - 1);
+        sum_reserve_val += TP2V_ruiseki[min(T, t+sakiyomi_dfs)][p.idx()] - TP2V_ruiseki[t][p.idx()];
         int adj_count = 0;
         for(const auto& dir : DIRS4){
             const Pos pp = p + dir;
@@ -506,7 +519,7 @@ struct State{
             // mitsu_pena += 1;
         // }
 
-        if(adj_count >= 3){
+        if(adj_count >= ADJ_PENA_THRESHOLD){
             adj_pena++;
         }
         //Todo:根の関節点判定にバグないかチェック
@@ -539,7 +552,7 @@ struct State{
             dfs(base_p, checked, count, sum_val, sum_reserve_val, ord, low);
             money += count * sum_val;
             //Todo:center_countをかけるタイミングをちゃんと
-            reserve_money += count * sum_reserve_val * (1 + 0.1 * center_count);
+            reserve_money += count * sum_reserve_val * (1 + CENTER_BONUS * center_count);
             chmax(max_connect_count, count);
         }
         t++;
@@ -559,13 +572,13 @@ struct State{
     int evaluate() const{
         int eval = 0;
         eval += count() * (t < MAX_BUY_T ? 1e9 / (N*N) : 0);
-        eval += money * 2;
+        eval += money * MAIN_MONEY_WEIGHT;
         eval += reserve_money;
         // eval += max_connect_count * max_connect_count;
         // if(count() >= 4 && max_connect_count != count()){
         //     eval = -1;
         // }
-        eval -= adj_pena * 1000;
+        eval -= adj_pena * ADJ_PENALTY_WEIGHT;
         // eval += ((max_x - min_x) + (max_y - min_y)) * count();
         // eval -= mitsu_pena * mitsu_pena * mitsu_pena * get_cost() * 0.01;
         return eval;
@@ -708,7 +721,7 @@ struct BeamSearcher{
                     //Todo:取得済みかどうかのチェック
                     //Todo:累積のほうが良いかも？
                     const int val = [&](){
-                        if(t < 500 || before_state.turn() + 3 <= t){
+                        if(t < START_SAKIYOMI || before_state.turn() + SAKIYOMI_TURN <= t){
                             //connectしていない場合は何歩目かによって価値が変わる
                             return TP2V[t][p.idx()] * (must_connect ? 1 : _t + 1);
                         }else{
@@ -716,7 +729,7 @@ struct BeamSearcher{
                             //Todo:提出時にはassert外すかNDEBUG
                             //Todo:must_connectではないときも先読みしたい 3が降ってくる前において、その後隣に置くことで3*2点をしたい
                             assert(must_connect);
-                            return TP2V_ruiseki[min(T, before_state.turn() + 3)][p.idx()] - TP2V_ruiseki[t][p.idx()] + TP2V[t][p.idx()];
+                            return TP2V_ruiseki[min(T, before_state.turn() + SAKIYOMI_TURN)][p.idx()] - TP2V_ruiseki[t][p.idx()] + TP2V[t][p.idx()];
                         }
                     }();
 
@@ -774,11 +787,10 @@ struct BeamSearcher{
                     }else{
                         const auto evaluate = [&](const Pos& from){
                             if(from.manhattan(to) == 1) return -INF;
-                            constexpr int sakiyomi = 5;
                             const int t = after_state.turn();
                             const int saki_t = min(t, T);
                             const bool is_center = from.y == N/2 || from.x == N/2;
-                            return -(TP2V_ruiseki[saki_t][from.idx()] - TP2V_ruiseki[t][from.idx()]) + (is_center ? -100000 : 0);
+                            return -(TP2V_ruiseki[saki_t][from.idx()] - TP2V_ruiseki[t][from.idx()]) + (is_center ? -CENTER_ERASE_PENALTY : 0);
                         };
                         Pos best_from = {-1,-1};
                         int best_eval = -INF;
@@ -820,7 +832,7 @@ struct BeamSearcher{
                 func(UD, LR);
             }
         }
-        if(before_state.count() <= 3){
+        if(before_state.count() <= NOMUST_CONNECT_THRESHOLD){
             for(const auto UD : {U,D}){
                 for(const auto LR : {L,R}){
                     func(UD, LR, false);
@@ -950,8 +962,22 @@ void solve(){
     cerr<<"score:"<<debug_final_money * 50<<endl;
 }
 
-int main(void){
+int main(int argc, char *argv[]){
     fast_io;
+
+    if(argc >= 2){
+        MAX_BUY_T = stoi(argv[1]);
+        SAKIYOMI_ERASE = stoi(argv[2]);
+        MAX_SAKIYOMI_DFS = stoi(argv[3]);
+        ADJ_PENA_THRESHOLD = stoi(argv[4]);
+        CENTER_ERASE_PENALTY = stoi(argv[5]);
+        CENTER_BONUS = stof(argv[6]);
+        MAIN_MONEY_WEIGHT = stof(argv[7]);
+        ADJ_PENALTY_WEIGHT = stof(argv[8]);
+        NOMUST_CONNECT_THRESHOLD = stoi(argv[9]);
+        SAKIYOMI_TURN = stoi(argv[10]);
+        START_SAKIYOMI = stoi(argv[11]);
+    }
 
     input();
     solve();
