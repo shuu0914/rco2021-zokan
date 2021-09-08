@@ -536,7 +536,7 @@ struct State{
             int sum_reserve_val = 0;
             dfs(base_p, checked, count, sum_val, sum_reserve_val, ord, low);
             money += count * sum_val;
-            reserve_money += count * sum_val;
+            reserve_money += count * sum_reserve_val;
             chmax(max_connect_count, count);
         }
         t++;
