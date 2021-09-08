@@ -589,28 +589,26 @@ struct BeamSearcher{
 
         }
 
-        //Todo:moveになってる？
         Log(State&& state_, Action&& action_, const int before_idx_, const Eval eval_)
-        : state(state_), action(action_), before_idx(before_idx_), eval(eval_)
+        : state(std::forward<State>(state_)), action(std::forward<Action>(action_)), before_idx(before_idx_), eval(eval_)
         {
 
         }
 
         Log(State&& state_, const Action& action_, const int before_idx_, const Eval eval_)
-        : state(state_), action(action_), before_idx(before_idx_), eval(eval_)
+        : state(std::forward<State>(state_)), action(action_), before_idx(before_idx_), eval(eval_)
         {
 
         }
 
-        //Todo:moveになってる？
         Log(State&& state_, vector<Action>&& actions_, const int before_idx_, const Eval eval_)
-        : state(state_), actions(actions_), before_idx(before_idx_), eval(eval_)
+        : state(std::forward<State>(state_)), actions(std::forward<vector<Action>>(actions_)), before_idx(before_idx_), eval(eval_)
         {
 
         }
 
         Log(State&& state_, const vector<Action>& actions_, const int before_idx_, const Eval eval_)
-        : state(state_), actions(actions_), before_idx(before_idx_), eval(eval_)
+        : state(std::forward<State>(state_)), actions(actions_), before_idx(before_idx_), eval(eval_)
         {
 
         }
@@ -640,14 +638,14 @@ struct BeamSearcher{
             const int t = after_state.turn();
             const Eval eval = after_state.evaluate() + bonus;
             vec_pq[t].emplace_back(eval, logs.size());
-            logs.emplace_back(std::move(after_state), action, before_idx, eval);
+            logs.emplace_back(std::move(after_state), std::forward<Action>(action), before_idx, eval);
         };
-        const auto push_actions = [&](const vector<Action>& actions, State&& after_state, const int bonus = 0){
+        const auto push_actions = [&](vector<Action>&& actions, State&& after_state, const int bonus = 0){
             const int t = after_state.turn();
             assert(t <= T);
             const Eval eval = after_state.evaluate() + bonus;
             vec_pq[t].emplace_back(eval, logs.size());
-            logs.emplace_back(std::move(after_state), actions, before_idx, eval);
+            logs.emplace_back(std::forward<State>(after_state), std::forward<vector<Action>>(actions), before_idx, eval);
         };
 
         const auto before_machines = before_state.get_machines();
