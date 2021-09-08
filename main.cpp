@@ -621,7 +621,7 @@ struct BeamSearcher{
 
     State first_state;
     vector<Log> logs;
-    vector<priority_queue<Log>> vec_pq;
+    vector<vector<pair<Eval, int>>> vec_pq;
 
     BeamSearcher(const State& first_state_)
     : first_state(first_state_)
@@ -634,13 +634,15 @@ struct BeamSearcher{
             after_state.do_action(action);
             const int t = after_state.turn();
             const Eval eval = after_state.evaluate() + bonus;
-            vec_pq[t].emplace(std::move(after_state), action, before_idx, eval);
+            vec_pq[t].emplace_back(eval, logs.size());
+            logs.emplace_back(std::move(after_state), action, before_idx, eval);
         };
         const auto push_actions = [&](const vector<Action>& actions, State&& after_state, const int bonus = 0){
             const int t = after_state.turn();
             assert(t <= T);
             const Eval eval = after_state.evaluate() + bonus;
-            vec_pq[t].emplace(std::move(after_state), actions, before_idx, eval);
+            vec_pq[t].emplace_back(eval, logs.size());
+            logs.emplace_back(std::move(after_state), actions, before_idx, eval);
         };
 
         if(before_state.count() == 0 || (before_state.count() == 1 && !before_state.can_buy())){
@@ -843,37 +845,41 @@ struct BeamSearcher{
 
     vector<Action> solve(){
         vec_pq.resize(T+1);
+        rep(i,T+1){
+            //4は{UD}*{LR}の組み合わせ数
+            vec_pq[i].reserve(BW * HOHABA * 4);
+        }
         logs.reserve((int)1e7);
         {
             Log first_log;
             first_log.set_state(first_state);
             logs.emplace_back(first_log);
+            assert(logs.size() == 1);
+            vec_pq[0].emplace_back(0, 0);
         }
-        int logs_start = 0;
         rep(t, T){
-            for(int before_idx = logs_start; before_idx < logs.size(); ++before_idx){
-                // cerr<<before_idx<<endl;
-                //Todo:参照にしたい
-                const State before_state = logs[before_idx].state;
-                expand(before_state, before_idx);
-            }
-
-            priority_queue<Log>& next_pq = vec_pq[t+1];
-            logs_start = logs.size();
+            auto& current_pq = vec_pq[t];
+            // partial_sort(current_pq.begin(), current_pq.begin() + min(BW * 2, (int)current_pq.size()), current_pq.end(), greater<>());
+            sort(all(current_pq), greater<>());
+            int vec_idx = 0;
             unordered_set<bitset<N*N>> S;
-            for(int _t = 0; _t < BW && next_pq.size() > 0; ++_t){
-                Log log = next_pq.top(); next_pq.pop();
-                const auto& hash = log.state.hash();
+            for(int _t = 0; _t < BW && vec_idx < current_pq.size(); ++_t, ++vec_idx){
+                const int idx = current_pq[vec_idx].second;
+                const auto& state = logs[idx].state;
+                const auto& hash = state.hash();
                 if(S.count(hash) > 0){
                     _t--;
                     continue;
                 }
                 S.insert(hash);
-                logs.emplace_back(std::move(log));
+
+                expand(state, idx);
             }
         }
 
-        const vector<Action> ans = back_prop(logs_start);
+        const auto& final_pq = vec_pq[T];
+        const auto itr = max_element(all(final_pq));
+        const vector<Action> ans = back_prop(itr->second);
         // State state;
         // for(const auto& action : ans){
         //     state.do_action(action);
