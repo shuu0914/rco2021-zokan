@@ -392,9 +392,9 @@ struct State{
         ret.reserve(machine_count);
         rep(y,N){
             rep(x,N){
-                const Pos&& p = {y,x};
+                Pos&& p = {y,x};
                 if(!is_machine(p)) continue;
-                ret.emplace_back(p);
+                ret.emplace_back(std::forward<Pos>(p));
             }
         }
         return ret;
