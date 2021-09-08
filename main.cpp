@@ -147,14 +147,10 @@ constexpr Dir DIRS4[4] = {U, D, L, R};
 constexpr int N = 16, M = 5000, T = 1000;
 struct Pos{
     int y,x;
-    Pos(){
-        y = -1;
-        x = -1;
-    }
-    Pos(int inp_y, int inp_x){
-        y = inp_y;
-        x = inp_x;
-    }
+    Pos(){}
+
+    Pos(int inp_y, int inp_x)
+    : y(inp_y), x(inp_x) {}
 
     void set_y(const int y_){
         y = y_;
