@@ -498,7 +498,7 @@ struct State{
             is_vegs[p.idx()] = false;
         }
         //Todo:コアレス
-        const int sakiyomi = min(10, this->count() - 1);
+        const int sakiyomi = min(2, this->count() - 1);
         sum_reserve_val += TP2V_ruiseki[min(T, t+sakiyomi)][p.idx()] - TP2V_ruiseki[t][p.idx()];
         int adj_count = 0;
         for(const auto& dir : DIRS4){
