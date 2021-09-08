@@ -312,7 +312,7 @@ struct Action{
 };
 
 constexpr int MAX_BUY_T = 800;
-constexpr int HOHABA = 6;
+constexpr int MAX_HOHABA = 6;
 const int BW = 10;
 
 ostream& operator<<(ostream& os, const vector<Action>& actions){
@@ -680,13 +680,17 @@ struct BeamSearcher{
             return;
         }
 
-        const auto func = [&](const auto UD, const auto LR){
-            vector<int> dp(N*N,-INF);
-            for(const auto& p : POSES_ALL){
-                if(before_state.is_machine(p)){
-                    dp[p.idx()] = 0;
+        const auto func = [&](const auto UD, const auto LR, const bool must_connect = true){
+            vector<int> dp(N*N);
+            if(must_connect){
+                for(const auto& p : POSES_ALL){
+                    if(!before_state.is_machine(p)){
+                        dp[p.idx()] = -INF;
+                    }
                 }
             }
+            //Todo:正しい？
+            const int HOHABA = MAX_HOHABA;
             vector<vector<Pos>> before_pos(HOHABA, vector<Pos>(N*N));
             vector<int> vec_max_val;
             vector<vector<Pos>> vec_max_keiro;
@@ -703,9 +707,13 @@ struct BeamSearcher{
                     //Todo:累積のほうが良いかも？
                     const int val = [&](){
                         if(t < 500 || before_state.turn() + 3 <= t){
-                            return TP2V[t][p.idx()];
+                            //connectしていない場合は何歩目かによって価値が変わる
+                            return TP2V[t][p.idx()] * (must_connect ? 1 : _t + 1);
                         }else{
                             //Todo:先読みターン数
+                            //Todo:提出時にはassert外すかNDEBUG
+                            //Todo:must_connectではないときも先読みしたい 3が降ってくる前において、その後隣に置くことで3*2点をしたい
+                            assert(must_connect);
                             return TP2V_ruiseki[min(T, before_state.turn() + 3)][p.idx()] - TP2V_ruiseki[t][p.idx()] + TP2V[t][p.idx()];
                         }
                     }();
@@ -731,6 +739,8 @@ struct BeamSearcher{
                 dp = std::move(dp2);
 
                 if(max_val == -1) continue;
+
+                if(!must_connect && _t+1 < before_state.count()) continue;
 
                 vec_max_val.emplace_back(max_val);
                 Pos p = max_pos;
@@ -773,6 +783,8 @@ struct BeamSearcher{
                         };
                         Pos best_from = {-1,-1};
                         int best_eval = -INF;
+                        //must_connectでないときでも、before_machinesの中から関節点ではないものを1つずつ消していくのでこれでよい
+                        //Todo:序盤は関節点を削除したほうが評価値が向上する可能性
                         for(const auto& from : before_machines){
                             if(!after_state.is_machine(from)) continue;
                             if(after_state.is_kansetsu(from)) continue;
@@ -809,6 +821,13 @@ struct BeamSearcher{
                 func(UD, LR);
             }
         }
+        if(before_state.count() <= 3){
+            for(const auto UD : {U,D}){
+                for(const auto LR : {L,R}){
+                    func(UD, LR, false);
+                }
+            }
+        }
     }
 
     vector<Action> back_prop(const int last_idx){
@@ -834,7 +853,8 @@ struct BeamSearcher{
         vec_pq.resize(T+1);
         rep(i,T+1){
             //4は{UD}*{LR}の組み合わせ数
-            vec_pq[i].reserve(BW * HOHABA * 4);
+            //2はmust_connectかどうかで2通り
+            vec_pq[i].reserve(BW * MAX_HOHABA * 4 * 2);
         }
         logs.reserve((int)1e7);
         {
