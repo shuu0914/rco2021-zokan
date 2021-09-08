@@ -342,6 +342,7 @@ struct State{
     int reserve_money = 0;
     int max_connect_count = 0;
     int adj_pena = 0;
+    int center_count = 0;
     // int min_x = 0, max_x = 0, min_y = 0, max_y = 0;
     // int mitsu_pena = 0;
 
@@ -486,6 +487,8 @@ struct State{
     void dfs(const Pos& p, bitset<N*N>& checked, int& count, int& sum_val, int& sum_reserve_val, vector<int>& ord, vector<int>& low){
         const bool is_root = count == 0;
         assert(p.in_range());
+        center_count += p.x == 7;
+        center_count += p.y == 7;
         // chmin(min_x, p.x);
         // chmax(max_x, p.x);
         // chmin(min_y, p.y);
@@ -546,6 +549,7 @@ struct State{
         reserve_money = 0;
         max_connect_count = 0;
         adj_pena = 0;
+        center_count = 0;
         // min_x = INF;
         // max_x = 0;
         // min_y = INF;
@@ -563,7 +567,8 @@ struct State{
             int sum_reserve_val = 0;
             dfs(base_p, checked, count, sum_val, sum_reserve_val, ord, low);
             money += count * sum_val;
-            reserve_money += count * sum_reserve_val;
+            //Todo:center_countをかけるタイミングをちゃんと
+            reserve_money += count * sum_reserve_val * (1 + 0.1 * center_count);
             chmax(max_connect_count, count);
         }
         t++;
@@ -782,14 +787,10 @@ struct BeamSearcher{
 
             assert(vec_max_val.size() == vec_max_keiro.size());
 
-            // 最初の一歩から最も遠いものから順に消していく
-            // Todo:最適化
-            // Todo:複数手
+            //消すものを選ぶ
+            //Todo:複数通り
             rep(i, vec_max_keiro.size()){
                 const auto& keiro = vec_max_keiro[i];
-                //遠いものから
-                //Todo:消すものが足りない場合に追加したものをそのまま消す可能性
-                //先頭は一歩目なので無視
 
                 vector<Action> actions;
                 State after_state = before_state;
@@ -805,7 +806,8 @@ struct BeamSearcher{
                             constexpr int sakiyomi = 5;
                             const int t = after_state.turn();
                             const int saki_t = min(t, T);
-                            return -(TP2V_ruiseki[saki_t][from.idx()] - TP2V_ruiseki[t][from.idx()]);
+                            const bool is_center = from.y == N/2 || from.x == N/2;
+                            return -(TP2V_ruiseki[saki_t][from.idx()] - TP2V_ruiseki[t][from.idx()]) + (is_center ? -100000 : 0);
                         };
                         Pos best_from = {-1,-1};
                         int best_eval = -INF;
