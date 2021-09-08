@@ -45,7 +45,7 @@ int MAX_BUY_T = 800;
 int SAKIYOMI_ERASE = 5;
 int MAX_SAKIYOMI_DFS = 2;
 int ADJ_PENA_THRESHOLD = 3;
-int CENTER_ERASE_PENALTY = 1000000;
+int CENTER_ERASE_PENALTY = INF/2;
 
 float CENTER_BONUS = 0.1;
 float MAIN_MONEY_WEIGHT = 2.0;
@@ -286,6 +286,10 @@ int idx(const int y, const int x){
     return y * N + x;
 }
 
+bool is_center(const Pos& p){
+    return p.y == N/4 || p.y == N*3/4;
+}
+
 struct Veg{
     int r,c,s,e,v;
 };
@@ -486,8 +490,7 @@ struct State{
     void dfs(const Pos& p, bitset<N*N>& checked, int& count, int& sum_val, int& sum_reserve_val, vector<int>& ord, vector<int>& low){
         const bool is_root = count == 0;
         assert(p.in_range());
-        center_count += p.x == N/2;
-        center_count += p.y == N/2;
+        center_count += is_center(p);
         // chmin(min_x, p.x);
         // chmax(max_x, p.x);
         // chmin(min_y, p.y);
@@ -807,8 +810,7 @@ struct BeamSearcher{
                             if(from.manhattan(to) == 1) return -INF;
                             const int t = after_state.turn();
                             const int saki_t = min(t, T);
-                            const bool is_center = from.y == N/2 || from.x == N/2;
-                            return -(TP2V_ruiseki[saki_t][from.idx()] - TP2V_ruiseki[t][from.idx()]) + (is_center ? -CENTER_ERASE_PENALTY : 0);
+                            return -(TP2V_ruiseki[saki_t][from.idx()] - TP2V_ruiseki[t][from.idx()]) + (is_center(from) ? -CENTER_ERASE_PENALTY : 0);
                         };
                         Pos best_from = {-1,-1};
                         int best_eval = -INF;
