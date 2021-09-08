@@ -1,7 +1,7 @@
 #pragma GCC target("avx2")
 #pragma GCC optimize("O3")
 #pragma GCC optimize("unroll-loops")
-#define NDEBUG
+// #define NDEBUG
 #include <iostream>
 #include <cstring>
 #include <algorithm>
@@ -12,6 +12,7 @@
 #include <limits>
 #include <list>
 #include <queue>
+#include <deque>
 #include <tuple>
 #include <map>
 #include <stack>
@@ -40,6 +41,8 @@ using namespace std;
 #define all(v) v.begin(), v.end()
 typedef pair<int, int> Pii;
 typedef pair<ll, ll> Pll;
+constexpr int N = 16, M = 5000, T = 1000;
+typedef bitset<N*N> HASH_TYPE;
 
 int MAX_BUY_T = 800;
 int SAKIYOMI_ERASE = 5;
@@ -70,7 +73,7 @@ int START_SAKIYOMI = 500;
 // int START_SAKIYOMI = 979;
 
 const int MAX_HOHABA = 6;
-const int BW = 10;
+const int BW = 200;
 
 uint32_t xorshift(){
     static uint32_t x = 123456789;
@@ -184,7 +187,6 @@ ostream& operator<<(ostream& os, const vector<Dir>& dirs){
 
 constexpr Dir DIRS4[4] = {U, D, L, R};
 
-constexpr int N = 16, M = 5000, T = 1000;
 struct Pos{
     int y,x;
     Pos(){}
@@ -297,8 +299,9 @@ struct Event{
     int val;
 };
 
-vector<vector<int>> TP2V(T, vector<int>(N*N));
-vector<vector<int>> TP2S(T, vector<int>(N*N));
+vector<vector<int>> TP2V(T+1, vector<int>(N*N));
+vector<vector<int>> TP2S(T+1, vector<int>(N*N));
+vector<vector<int>> TP2NS(T+1, vector<int>(N*N));
 vector<vector<int>> TP2V_ruiseki(T+1, vector<int>(N*N));
 vector<vector<Pos>> T2P(T);
 vector<vector<Event>> events(T+1);
@@ -331,29 +334,24 @@ ostream& operator<<(ostream& os, const vector<Action>& actions){
     return os;
 }
 
-template<class CenterJudger>
-struct State_tmp{
+struct State{
     int money = 1;
-    int t = 0;
-    int machine_count = 0;
-    bitset<N*N> is_machines = 0;
-    bitset<N*N> is_vegs = 0;
-    bitset<N*N> is_kansetsu_ = 0;
     int reserve_money = 0;
-    int max_connect_count = 0;
-    int adj_pena = 0;
-    int center_count = 0;
-    // int min_x = 0, max_x = 0, min_y = 0, max_y = 0;
-    // int mitsu_pena = 0;
+    int t = 0;
+    bitset<N*N> is_machines = 0;
+    //最後に存在していたt
+    array<int, N*N> last_pass = {};
+    //Todo:RingBufferで高速化
+    //t→val
+    map<int,int> expected_vegs;
+    deque<Pos> machines;
 
-    State_tmp(){
-        for(const auto& p : T2P[0]){
-            is_vegs[p.idx()] = true;
-        }
+    State(){
+        fill(all(last_pass), -1);
     }
 
     int get_cost() const{
-        return (machine_count + 1) * (machine_count + 1) * (machine_count + 1);
+        return (machines.size() + 1) * (machines.size() + 1) * (machines.size() + 1);
     }
 
     bool can_buy() const{
@@ -365,7 +363,7 @@ struct State_tmp{
     }
 
     bool is_veg(const Pos& p) const{
-        return is_vegs[p.idx()];
+        return TP2V[t][p.idx()] > 0 && (TP2S[t][p.idx()] == t || TP2S[t][p.idx()] > last_pass[p.idx()]);
     }
 
     int get_veg_value(const Pos& p) const{
@@ -376,7 +374,7 @@ struct State_tmp{
     }
 
     int count() const{
-        return machine_count;
+        return machines.size();
     }
 
     int turn() const{
@@ -387,16 +385,16 @@ struct State_tmp{
         return money;
     }
 
+    Pos get_tail() const{
+        return machines.front();
+    }
+
+    Pos get_head() const{
+        return machines.back();
+    }
+
     vector<Pos> get_machines() const{
-        vector<Pos> ret;
-        ret.reserve(machine_count);
-        rep(y,N){
-            rep(x,N){
-                Pos&& p = {y,x};
-                if(!is_machine(p)) continue;
-                ret.emplace_back(std::forward<Pos>(p));
-            }
-        }
+        vector<Pos> ret(all(machines));
         return ret;
     }
 
@@ -411,15 +409,6 @@ struct State_tmp{
     }
 
     bool can_action(const Action& action) const{
-        const auto adj_count = [&](const Pos& p){
-            int count = 0;
-            for(const auto& dir : DIRS4){
-                const Pos&& pp = p + dir;
-                if(!pp.in_range()) continue;
-                count += is_machine(pp);
-            }
-            return count;
-        };
         if(action.kind == BUY){
             if(!can_buy()){
                 return false;
@@ -427,10 +416,6 @@ struct State_tmp{
             if(is_machine(action.to)){
                 return false;
             }
-            //Todo:大丈夫？
-            // if(adj_count(action.to) >= 2){
-            //     return false;
-            // }
             return true;
         }else if(action.kind == MOVE){
             if(!is_machine(action.from)){
@@ -439,176 +424,101 @@ struct State_tmp{
             if(is_machine(action.to)){
                 return false;
             }
-            //Todo:大丈夫？
-            // if(adj_count(action.to) >= 2){
-            //     return false;
-            // }
             return true;
         }else{
             //PASS
             return true;
         }
-    }
-
-    bool is_kansetsu(const Pos& p) const{
-        return is_kansetsu_[p.idx()];
-    }
-
-    void do_action(const Action& action, const vector<Pos>& machines){
-        assert(can_action(action));
-        if(action.kind == BUY){
-            money -= get_cost();
-            machine_count++;
-            is_machines[action.to.idx()] = true;
-        }else if(action.kind == MOVE){
-            is_machines[action.from.idx()] = false;
-            is_machines[action.to.idx()] = true;
-        }else{
-            //PASS
-        }
-        do_turn_end(machines);
     }
 
     void do_action(const Action& action){
         assert(can_action(action));
+
+        const auto update_money = [&](const Pos& to){
+            //即時報酬
+            money += get_veg_value(to) * count();
+            //将来報酬
+            int now = t;
+            while(true){
+                const int next = TP2NS[now][to.idx()];
+                //Todo:戦略的パスやBUYによる時間稼ぎを考慮
+                if(next >= t + count()){
+                    break;
+                }
+                const int val = TP2V[next][to.idx()];
+                expected_vegs[next] += val;
+                reserve_money += val * count();
+                now = next;
+            }
+            //turn() + count()の終了時まで存在する
+            last_pass[to.idx()] = turn() + count();
+        };
+
         if(action.kind == BUY){
             money -= get_cost();
-            machine_count++;
             is_machines[action.to.idx()] = true;
+            assert(count() == 0 || reserve_money%count() == 0);
+            //計算し直し
+            if(count() > 0){
+                reserve_money = reserve_money / count() * (count()+1);
+            }
+            rep(i, machines.size()){
+                const auto& p = machines[i];
+                //turn() + iに降ってくる報酬はもらえない換算だったが貰えるようになった
+                const int ttt = turn() + i;
+                if(ttt >= T-1) break;
+                const int val = TP2V[ttt][p.idx()];
+                if(val > 0 && TP2S[ttt][p.idx()] == ttt){
+                    reserve_money += val * (count() + 1);
+                    expected_vegs[ttt] += val;
+                }
+            }
+
+            machines.emplace_back(action.to);
+
+            update_money(action.to);
         }else if(action.kind == MOVE){
             is_machines[action.from.idx()] = false;
             is_machines[action.to.idx()] = true;
+            assert(machines.front() == action.from);
+            machines.pop_front();
+            machines.emplace_back(action.to);
+
+            update_money(action.to);
         }else{
             //PASS
         }
-        do_turn_end(get_machines());
+        do_turn_end();
     }
 
-    void dfs(const Pos& p, bitset<N*N>& checked, int& count, int& sum_val, int& sum_reserve_val, vector<int>& ord, vector<int>& low){
-        const bool is_root = count == 0;
-        assert(p.in_range());
-        center_count += CenterJudger::is_center(p);
-        // chmin(min_x, p.x);
-        // chmax(max_x, p.x);
-        // chmin(min_y, p.y);
-        // chmax(max_y, p.y);
-        ord[p.idx()] = count;
-        count++;
-        int root_count = 0;
-        if(is_veg(p)){
-            sum_val += TP2V[t][p.idx()];
-            is_vegs[p.idx()] = false;
-        }
-
-        const int sakiyomi_dfs = min(MAX_SAKIYOMI_DFS, this->count() - 1);
-        sum_reserve_val += TP2V_ruiseki[min(T, t+sakiyomi_dfs)][p.idx()] - TP2V_ruiseki[t][p.idx()];
-        int adj_count = 0;
-        for(const auto& dir : DIRS4){
-            const Pos pp = p + dir;
-            if(!pp.in_range()) continue;
-            if(!is_machine(pp)) continue;
-            adj_count++;
-            if(checked[pp.idx()]){
-                //後退辺
-                chmin(low[p.idx()], ord[pp.idx()]);
-                continue;
-            }
-            root_count++;
-            checked[pp.idx()] = true;
-            dfs(pp, checked, count, sum_val, sum_reserve_val, ord, low);
-            chmin(low[p.idx()], low[pp.idx()]);
-            if(!is_root && ord[p.idx()] <= low[pp.idx()]){
-                is_kansetsu_[p.idx()] = true;
-            }
-        }
-
-        // int adj8_count = adj_count;
-        // for(auto&& dy : {-1,1}){
-        //     for(auto&& dx : {-1,1}){
-        //         const Pos&& pp = p + Pos(dy,dx);
-        //         if(!pp.in_range()) continue;
-        //         adj8_count += is_machine(pp);
-        //     }
-        // }
-        // if(adj8_count >= 4){
-            // mitsu_pena += 1;
-        // }
-
-        if(adj_count >= ADJ_PENA_THRESHOLD){
-            adj_pena++;
-        }
-        //Todo:根の関節点判定にバグないかチェック
-        if(is_root && root_count >= 2){
-            is_kansetsu_[p.idx()] = true;
-        }
-    }
-
-    void do_turn_end(const vector<Pos>& machines){
-        bitset<N*N> checked = 0;
-        reserve_money = 0;
-        max_connect_count = 0;
-        adj_pena = 0;
-        center_count = 0;
-        // min_x = INF;
-        // max_x = 0;
-        // min_y = INF;
-        // max_y = 0;
-        // mitsu_pena = 0;
-
-        vector<int> ord(N*N), low(N*N, INF);
-        is_kansetsu_ = 0;
-
-        for(const auto& base_p : machines){
-            if(checked[base_p.idx()]) continue;
-            checked[base_p.idx()] = true;
-            int count = 0;
-            int sum_val = 0;
-            int sum_reserve_val = 0;
-            dfs(base_p, checked, count, sum_val, sum_reserve_val, ord, low);
-            money += count * sum_val;
-            //Todo:center_countをかけるタイミングをちゃんと
-            reserve_money += count * sum_reserve_val * (1 + CENTER_BONUS * center_count);
-            chmax(max_connect_count, count);
+    void do_turn_end(){
+        const auto itr = expected_vegs.find(t);
+        if(itr != expected_vegs.end()){
+            const int veg_num = itr->second;
+            const int val = veg_num * count();
+            money += val;
+            reserve_money -= val;
+            expected_vegs.erase(itr);
         }
         t++;
-
-        //Todo:評価値悪かったらStart処理はする必要ない
-        for(const auto& event : events[t]){
-            const Pos& p = event.p;
-            assert(p.in_range());
-            if(event.is_S){
-                is_vegs[p.idx()] = true;
-            }else{
-                is_vegs[p.idx()] = false;
-            }
-        }
     }
 
     int evaluate() const{
         int eval = 0;
         eval += count() * (t < MAX_BUY_T ? 1e9 / (N*N) : 0);
-        eval += money * MAIN_MONEY_WEIGHT;
-        eval += reserve_money;
-        // eval += max_connect_count * max_connect_count;
-        // if(count() >= 4 && max_connect_count != count()){
-        //     eval = -1;
-        // }
-        eval -= adj_pena * ADJ_PENALTY_WEIGHT;
-        // eval += ((max_x - min_x) + (max_y - min_y)) * count();
-        // eval -= mitsu_pena * mitsu_pena * mitsu_pena * get_cost() * 0.01;
+        eval += money + reserve_money;
         return eval;
     }
 
-    bitset<N*N> hash() const{
-        return is_vegs ^ is_machines;
+    HASH_TYPE hash() const{
+        return is_machines;
     }
 };
 
 vector<Pos> POSES_ALL;
 
-template<typename Eval, class CenterJudger>
+template<typename Eval>
 struct BeamSearcher{
-    using State = State_tmp<CenterJudger>;
     struct Log{
         State state;
         Action action;
@@ -679,8 +589,6 @@ struct BeamSearcher{
             logs.emplace_back(std::forward<State>(after_state), std::forward<vector<Action>>(actions), before_idx, eval);
         };
 
-        const auto before_machines = before_state.get_machines();
-
         if(before_state.count() == 0 || (before_state.count() == 1 && !before_state.can_buy())){
             Pos from = {-1,-1};
             int max_val = 0;
@@ -711,151 +619,23 @@ struct BeamSearcher{
             return;
         }
 
-        const auto func = [&](const auto UD, const auto LR, const bool must_connect = true){
-            vector<int> dp(N*N);
-            if(must_connect){
-                for(const auto& p : POSES_ALL){
-                    if(!before_state.is_machine(p)){
-                        dp[p.idx()] = -INF;
-                    }
-                }
-            }
-            //Todo:正しい？
-            const int HOHABA = MAX_HOHABA;
-            vector<vector<Pos>> before_pos(HOHABA, vector<Pos>(N*N));
-            vector<int> vec_max_val;
-            vector<vector<Pos>> vec_max_keiro;
-            rep(_t, HOHABA){
-                //Todo:あってる？
-                const int t = before_state.turn() + _t;
-                if(t >= T) break;
-                int max_val = -1;
-                Pos max_pos = {-1,-1};
-                vector<int> dp2(N*N,-INF);
-                for(const auto& p : POSES_ALL){
-                    if(before_state.is_machine(p)) continue;
-                    //Todo:取得済みかどうかのチェック
-                    //Todo:累積のほうが良いかも？
-                    const int val = [&](){
-                        //降ってきてるはずなのに存在しない → 取得済み
-                        if(TP2S[t][p.idx()] <= before_state.turn() && !before_state.is_veg(p)){
-                            return 0;
-                        }if(t < START_SAKIYOMI || before_state.turn() + SAKIYOMI_TURN <= t){
-                            //connectしていない場合は何歩目かによって価値が変わる
-                            return TP2V[t][p.idx()] * (must_connect ? 1 : _t + 1);
-                        }else{
-                            //Todo:先読みターン数
-                            //Todo:提出時にはassert外すかNDEBUG
-                            //Todo:must_connectではないときも先読みしたい 3が降ってくる前において、その後隣に置くことで3*2点をしたい
-                            assert(must_connect);
-                            return TP2V_ruiseki[min(T, before_state.turn() + SAKIYOMI_TURN)][p.idx()] - TP2V_ruiseki[t][p.idx()] + TP2V[t][p.idx()];
-                        }
-                    }();
+        const Pos& head = before_state.get_head();
+        for(const auto& dir : DIRS4){
+            Pos&& to = head + dir;
+            if(!to.in_range()) continue;
+            if(before_state.is_machine(to)) continue;
 
-                    const Pos&& pp1 = p + UD;
-                    if(pp1.in_range() && dp2[p.idx()] < dp[pp1.idx()] + val){
-                        dp2[p.idx()] = dp[pp1.idx()] + val;
-                        before_pos[_t][p.idx()] = pp1;
-                    }
+            Action action;
+            action.to = std::forward<Pos>(to);
 
-                    const Pos&& pp2 = p + LR;
-                    if(pp2.in_range() && dp2[p.idx()] < dp[pp2.idx()] + val){
-                        dp2[p.idx()] = dp[pp2.idx()] + val;
-                        before_pos[_t][p.idx()] = pp2;
-                    }
-
-                    if(dp2[p.idx()] > max_val){
-                        max_val = dp2[p.idx()];
-                        max_pos = p;
-                    }
-                }
-
-                dp = std::move(dp2);
-
-                if(max_val == -1) continue;
-
-                if(!must_connect && _t+1 < before_state.count()) continue;
-
-                vec_max_val.emplace_back(max_val);
-                Pos p = max_pos;
-                assert(p.y != -1);
-                vector<Pos> kei;
-                REP(_i, _t+1){
-                    kei.emplace_back(p);
-                    p = before_pos[_i][p.idx()];
-                }
-                reverse(all(kei));
-                vec_max_keiro.emplace_back(kei);
+            if(before_state.can_buy() && before_state.turn() <= MAX_BUY_T){
+                action.kind = BUY;
+            }else{
+                action.kind = MOVE;
+                action.from = before_state.get_tail();
             }
 
-            assert(vec_max_val.size() == vec_max_keiro.size());
-
-            //消すものを選ぶ
-            //Todo:複数通り
-            rep(i, vec_max_keiro.size()){
-                const auto& keiro = vec_max_keiro[i];
-
-                vector<Action> actions;
-                State after_state = before_state;
-                for(const auto& to : keiro){
-                    Action action;
-                    //Todo:複数回購入できる可能性
-                    if(after_state.turn() <= MAX_BUY_T && after_state.can_buy()){
-                        action.kind = BUY;
-                        action.to = to;
-                    }else{
-                        const auto evaluate = [&](const Pos& from){
-                            if(from.manhattan(to) == 1) return -INF;
-                            const int t = after_state.turn();
-                            const int saki_t = min(t, T);
-                            return -(TP2V_ruiseki[saki_t][from.idx()] - TP2V_ruiseki[t][from.idx()]) + (CenterJudger::is_center(from) ? -CENTER_ERASE_PENALTY : 0);
-                        };
-                        Pos best_from = {-1,-1};
-                        int best_eval = -INF;
-                        //must_connectでないときでも、before_machinesの中から関節点ではないものを1つずつ消していくのでこれでよい
-                        //Todo:序盤は関節点を削除したほうが評価値が向上する可能性
-                        for(const auto& from : before_machines){
-                            if(!after_state.is_machine(from)) continue;
-                            if(after_state.is_kansetsu(from)) continue;
-                            const int eval = evaluate(from);
-                            if(eval > best_eval){
-                                best_eval = eval;
-                                best_from = from;
-                            }
-                        }
-                        if(best_from.y == -1){
-                            break;
-                        }
-                        action.kind = MOVE;
-                        action.from = best_from;
-                        action.to = to;
-                    }
-
-                    // cerr<<action.kind<<" "<<action.from<<" "<<action.to<<" "<<keiro.size()<<" "<<vec_bfs.size()<<endl;
-                    // assert(before_state.can_action(action));
-                    actions.emplace_back(action);
-                    assert(after_state.can_action(action));
-                    after_state.do_action(action);
-                    //Todo:2手以上を突っ込む方法
-                    // assert(HOHABA == 1);
-                    //Todo:breakしない
-                    // break;
-                }
-                push_actions(std::move(actions), std::move(after_state));
-            }
-        };
-
-        for(const auto UD : {U,D}){
-            for(const auto LR : {L,R}){
-                func(UD, LR);
-            }
-        }
-        if(before_state.count() <= NOMUST_CONNECT_THRESHOLD){
-            for(const auto UD : {U,D}){
-                for(const auto LR : {L,R}){
-                    func(UD, LR, false);
-                }
-            }
+            push_action(std::move(action));
         }
     }
 
@@ -883,6 +663,7 @@ struct BeamSearcher{
         rep(i,T+1){
             //4は{UD}*{LR}の組み合わせ数
             //2はmust_connectかどうかで2通り
+            //Todo:調整し直し
             vec_pq[i].reserve(BW * MAX_HOHABA * 4 * 2);
         }
         logs.reserve((int)1e7);
@@ -895,20 +676,22 @@ struct BeamSearcher{
         }
         rep(t, T){
             auto& current_pq = vec_pq[t];
+            // cerr<<t<<" "<<current_pq.size()<<endl;
             // partial_sort(current_pq.begin(), current_pq.begin() + min(BW * 2, (int)current_pq.size()), current_pq.end(), greater<>());
             sort(all(current_pq), greater<>());
             int vec_idx = 0;
-            unordered_set<bitset<N*N>> S;
+            unordered_set<HASH_TYPE> S;
             for(int _t = 0; _t < BW && vec_idx < current_pq.size(); ++_t, ++vec_idx){
                 const int idx = current_pq[vec_idx].second;
                 const auto& state = logs[idx].state;
-                const auto& hash = state.hash();
-                if(S.count(hash) > 0){
-                    _t--;
-                    continue;
+                if(t > 0){
+                    const auto& hash = state.hash();
+                    if(S.count(hash) > 0){
+                        _t--;
+                        continue;
+                    }
+                    S.insert(hash);
                 }
-                S.insert(hash);
-
                 expand(state, idx);
             }
         }
@@ -928,6 +711,9 @@ struct BeamSearcher{
 void input(){
     int _; cin>>_>>_>>_;
     timer.start();
+    rep(t,T+1){
+        fill(all(TP2NS[t]),INF);
+    }
     rep(i,M){
         int r,c,s,e,v;cin>>r>>c>>s>>e>>v;
         e++;
@@ -936,6 +722,9 @@ void input(){
             TP2V[t][idx(r,c)] += v;
             TP2S[t][idx(r,c)] = s;
             T2P[t].push_back({r,c});
+        }
+        if(s > 0){
+            TP2NS[s-1][idx(r,c)] = s;
         }
         TP2V_ruiseki[s][idx(r,c)] += v;
 
@@ -949,6 +738,14 @@ void input(){
             events[e].push_back(event);
         }
     }
+    rep(idx,N*N){
+        int s = INF;
+        REP(t,T+1){
+            chmin(TP2NS[t][idx], s);
+            s = TP2NS[t][idx];
+        }
+    }
+
     rep(idx, N*N){
         rep(t,T){
             TP2V_ruiseki[t+1][idx] += TP2V_ruiseki[t][idx];
@@ -971,41 +768,16 @@ void input(){
     }
 }
 
-template<class CenterJudger>
 pair<vector<Action>, int> solve(){
-    State_tmp<CenterJudger> first_state_;
+    State first_state_;
     first_state_.money = 1;
-    BeamSearcher<int, CenterJudger> bs_er(first_state_);
+    BeamSearcher<int> bs_er(first_state_);
     auto&& ans = bs_er.solve();
     cerr<<timer.ms()<<"[ms]"<<endl;
     const int final_money = debug_final_money;
     cerr<<"final money:"<<final_money<<endl;
     return std::make_pair(std::forward<decltype(ans)>(ans), final_money);
 }
-
-struct Y14{
-    static bool is_center(const Pos& p){
-        return p.y == N/4 || p.y == N*3/4;
-    }
-};
-
-struct X14{
-    static bool is_center(const Pos& p){
-        return p.x == N/4 || p.x == N*3/4;
-    }
-};
-
-struct Y12{
-    static bool is_center(const Pos& p){
-        return p.y == N/3 || p.y == N*2/3;
-    }
-};
-
-struct X12{
-    static bool is_center(const Pos& p){
-        return p.x == N/3 || p.x == N*2/3;
-    }
-};
 
 int main(int argc, char *argv[]){
     fast_io;
@@ -1025,28 +797,7 @@ int main(int argc, char *argv[]){
     }
 
     input();
-
-    // const auto pa1 = solve<Y14>();
-    // const auto pa2 = solve<X14>();
-    // const auto pa3 = solve<Y12>();
-    // const auto pa4 = solve<X12>();
-    // constexpr int num = 4;
-    // pair<vector<Action>, int> pairs[num] = {pa1,pa2,pa3,pa4};
-
-    // int best_i = 0;
-    // int best_score = 0;
-    // rep(i,num){
-    //     const auto& pa = pairs[i];
-    //     const int score = pa.second;
-    //     if(score > best_score){
-    //         best_i = i;
-    //         best_score = score;
-    //     }
-    // }
-    // cout<<pairs[best_i].first<<endl;
-    // cerr<<"score:"<<best_score*50<<endl;
-
-    const auto& pa = solve<Y14>();
+    const auto& pa = solve();
     cout<<pa.first<<endl;
     cerr<<"score:"<<pa.second*50<<endl;
     return 0;
