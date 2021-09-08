@@ -286,10 +286,6 @@ int idx(const int y, const int x){
     return y * N + x;
 }
 
-bool is_center(const Pos& p){
-    return p.y == N/4 || p.y == N*3/4;
-}
-
 struct Veg{
     int r,c,s,e,v;
 };
@@ -335,7 +331,8 @@ ostream& operator<<(ostream& os, const vector<Action>& actions){
     return os;
 }
 
-struct State{
+template<class CenterJudger>
+struct State_tmp{
     int money = 1;
     int t = 0;
     int machine_count = 0;
@@ -349,7 +346,7 @@ struct State{
     // int min_x = 0, max_x = 0, min_y = 0, max_y = 0;
     // int mitsu_pena = 0;
 
-    State(){
+    State_tmp(){
         for(const auto& p : T2P[0]){
             is_vegs[p.idx()] = true;
         }
@@ -490,7 +487,7 @@ struct State{
     void dfs(const Pos& p, bitset<N*N>& checked, int& count, int& sum_val, int& sum_reserve_val, vector<int>& ord, vector<int>& low){
         const bool is_root = count == 0;
         assert(p.in_range());
-        center_count += is_center(p);
+        center_count += CenterJudger::is_center(p);
         // chmin(min_x, p.x);
         // chmax(max_x, p.x);
         // chmin(min_y, p.y);
@@ -609,8 +606,9 @@ struct State{
 
 vector<Pos> POSES_ALL;
 
-template<typename Eval>
+template<typename Eval, class CenterJudger>
 struct BeamSearcher{
+    using State = State_tmp<CenterJudger>;
     struct Log{
         State state;
         Action action;
@@ -810,7 +808,7 @@ struct BeamSearcher{
                             if(from.manhattan(to) == 1) return -INF;
                             const int t = after_state.turn();
                             const int saki_t = min(t, T);
-                            return -(TP2V_ruiseki[saki_t][from.idx()] - TP2V_ruiseki[t][from.idx()]) + (is_center(from) ? -CENTER_ERASE_PENALTY : 0);
+                            return -(TP2V_ruiseki[saki_t][from.idx()] - TP2V_ruiseki[t][from.idx()]) + (CenterJudger::is_center(from) ? -CENTER_ERASE_PENALTY : 0);
                         };
                         Pos best_from = {-1,-1};
                         int best_eval = -INF;
@@ -973,15 +971,41 @@ void input(){
     }
 }
 
-void solve(){
-    State first_state_;
+template<class CenterJudger>
+pair<vector<Action>, int> solve(){
+    State_tmp<CenterJudger> first_state_;
     first_state_.money = 1;
-    BeamSearcher<int> bs_er(first_state_);
-    cout<<bs_er.solve()<<endl;
+    BeamSearcher<int, CenterJudger> bs_er(first_state_);
+    auto&& ans = bs_er.solve();
     cerr<<timer.ms()<<"[ms]"<<endl;
-    cerr<<"final money:"<<debug_final_money<<endl;
-    cerr<<"score:"<<debug_final_money * 50<<endl;
+    const int final_money = debug_final_money;
+    cerr<<"final money:"<<final_money<<endl;
+    return std::make_pair(std::forward<decltype(ans)>(ans), final_money);
 }
+
+struct Y14{
+    static bool is_center(const Pos& p){
+        return p.y == N/4 || p.y == N*3/4;
+    }
+};
+
+struct X14{
+    static bool is_center(const Pos& p){
+        return p.x == N/4 || p.x == N*3/4;
+    }
+};
+
+struct Y12{
+    static bool is_center(const Pos& p){
+        return p.y == N/3 || p.y == N*2/3;
+    }
+};
+
+struct X12{
+    static bool is_center(const Pos& p){
+        return p.x == N/3 || p.x == N*2/3;
+    }
+};
 
 int main(int argc, char *argv[]){
     fast_io;
@@ -1001,6 +1025,29 @@ int main(int argc, char *argv[]){
     }
 
     input();
-    solve();
+
+    // const auto pa1 = solve<Y14>();
+    // const auto pa2 = solve<X14>();
+    // const auto pa3 = solve<Y12>();
+    // const auto pa4 = solve<X12>();
+    // constexpr int num = 4;
+    // pair<vector<Action>, int> pairs[num] = {pa1,pa2,pa3,pa4};
+
+    // int best_i = 0;
+    // int best_score = 0;
+    // rep(i,num){
+    //     const auto& pa = pairs[i];
+    //     const int score = pa.second;
+    //     if(score > best_score){
+    //         best_i = i;
+    //         best_score = score;
+    //     }
+    // }
+    // cout<<pairs[best_i].first<<endl;
+    // cerr<<"score:"<<best_score*50<<endl;
+
+    const auto& pa = solve<Y14>();
+    cout<<pa.first<<endl;
+    cerr<<"score:"<<pa.second*50<<endl;
     return 0;
 }
