@@ -969,6 +969,14 @@ void input(){
             POSES_ALL.push_back({y,x});
         }
     }
+
+    // sort(all(V), [&](const Veg& l, const Veg& r){
+    //     return l.v > r.v;
+    // });
+    // for(const auto& v : V){
+    //     if(v.v < 100) break;
+    //     cerr<<v.v<<":"<<v.s<<" "<<Pos(v.r, v.c)<<endl;
+    // }
 }
 
 template<class CenterJudger>
@@ -1006,6 +1014,127 @@ struct X12{
         return p.x == N/3 || p.x == N*2/3;
     }
 };
+
+struct Custom{
+    static array<bool,N*N> is_center_;
+    static bool is_center(const Pos& p){
+        return is_center_[p.idx()];
+    }
+
+    static void init(){
+        fill(all(Custom::is_center_),false);
+        constexpr int FINALE_START = 800;
+        vector<int> values(N*N), Y(N), X(N);
+        rep(idx,N*N){
+            values[idx] += TP2V_ruiseki[T][idx] - TP2V_ruiseki[FINALE_START][idx];
+        }
+        rep(y,N){
+            rep(x,N){
+                Y[y] += values[idx(y,x)];
+                X[x] += values[idx(y,x)];
+            }
+        }
+        float best_eval = 0;
+        struct Line{
+            int p1, p2, p3;
+            bool is_y;
+        };
+        Line best_line;
+        rep(y2,N){
+            rep(y1,y2){
+                if(y2-y1 <= 4) continue;
+                rep(x,N){
+                    const int count = N + N + y2-y1-1;
+                    int sum = Y[y1] + Y[y2];
+                    if(y1-1 >= 0){
+                        sum += Y[y1-1];
+                    }
+                    if(y2+1 < N){
+                        sum += Y[y2+1];
+                    }
+                    if(y1-2 >= 0){
+                        sum += Y[y1-2];
+                    }
+                    if(y2+2 < N){
+                        sum += Y[y2+2];
+                    }
+                    for(int y = y1 + 1; y < y2; ++y){
+                        sum += values[idx(y,x)];
+                        if(x-1 >= 0){
+                            sum += values[idx(y,x-1)];
+                        }
+                        if(x+1 < N){
+                            sum += values[idx(y,x+1)];
+                        }
+                    }
+                    const float eval = (float)sum / count;
+                    if(eval > best_eval){
+                        best_eval = eval;
+                        best_line = {y1,y2,x,true};
+                    }
+                }
+            }
+        }
+        rep(x2,N){
+            rep(x1,x2){
+                if(x2-x1 <= 4) continue;
+                rep(y,N){
+                    const int count = N + N + x2-x1-1;
+                    int sum = X[x1] + X[x2];
+                    if(x1-1 >= 0){
+                        sum += X[x1-1];
+                    }
+                    if(x2+1 < N){
+                        sum += X[x2+1];
+                    }
+                    if(x1-2 >= 0){
+                        sum += X[x1-2];
+                    }
+                    if(x2+2 < N){
+                        sum += X[x2+2];
+                    }
+                    for(int x = x1 + 1; x < x2; ++x){
+                        sum += values[idx(y,x)];
+                        if(y-1 >= 0){
+                            sum += values[idx(y-1,x)];
+                        }
+                        if(y+1 < N){
+                            sum += values[idx(y+1,x)];
+                        }
+                    }
+                    const float eval = (float)sum / count;
+                    if(eval > best_eval){
+                        best_eval = eval;
+                        best_line = {x1,x2,y,false};
+                    }
+                }
+            }
+        }
+        const int p1 = best_line.p1;
+        const int p2 = best_line.p2;
+        const int p3 = best_line.p3;
+        if(best_line.is_y){
+            rep(x,N){
+                is_center_[idx(p1,x)] = true;
+                is_center_[idx(p2,x)] = true;
+            }
+            for(int y = p1+1; y < p2; ++y){
+                is_center_[idx(y,p3)] = true;
+            }
+        }else{
+            rep(y,N){
+                is_center_[idx(y,p1)] = true;
+                is_center_[idx(y,p2)] = true;
+            }
+            for(int x = p1+1; x < p2; ++x){
+                is_center_[idx(p3,x)] = true;
+            }
+        }
+        cerr<<p1<<" "<<p2<<" "<<p3<<" "<<best_line.is_y<<endl;
+    }
+};
+
+array<bool,N*N> Custom::is_center_;
 
 int main(int argc, char *argv[]){
     fast_io;
@@ -1046,7 +1175,8 @@ int main(int argc, char *argv[]){
     // cout<<pairs[best_i].first<<endl;
     // cerr<<"score:"<<best_score*50<<endl;
 
-    const auto& pa = solve<Y14>();
+    Custom::init();
+    const auto& pa = solve<Custom>();
     cout<<pa.first<<endl;
     cerr<<"score:"<<pa.second*50<<endl;
     return 0;
