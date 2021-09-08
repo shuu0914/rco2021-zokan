@@ -298,6 +298,7 @@ struct Event{
 };
 
 vector<vector<int>> TP2V(T, vector<int>(N*N));
+vector<vector<int>> TP2S(T, vector<int>(N*N));
 vector<vector<int>> TP2V_ruiseki(T+1, vector<int>(N*N));
 vector<vector<Pos>> T2P(T);
 vector<vector<Event>> events(T+1);
@@ -735,7 +736,10 @@ struct BeamSearcher{
                     //Todo:取得済みかどうかのチェック
                     //Todo:累積のほうが良いかも？
                     const int val = [&](){
-                        if(t < START_SAKIYOMI || before_state.turn() + SAKIYOMI_TURN <= t){
+                        //降ってきてるはずなのに存在しない → 取得済み
+                        if(TP2S[t][p.idx()] <= before_state.turn() && !before_state.is_veg(p)){
+                            return 0;
+                        }if(t < START_SAKIYOMI || before_state.turn() + SAKIYOMI_TURN <= t){
                             //connectしていない場合は何歩目かによって価値が変わる
                             return TP2V[t][p.idx()] * (must_connect ? 1 : _t + 1);
                         }else{
@@ -930,6 +934,7 @@ void input(){
         V.push_back({r,c,s,e,v});
         for(int t = s; t < e; ++t){
             TP2V[t][idx(r,c)] += v;
+            TP2S[t][idx(r,c)] = s;
             T2P[t].push_back({r,c});
         }
         TP2V_ruiseki[s][idx(r,c)] += v;
