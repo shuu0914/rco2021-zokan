@@ -22,6 +22,9 @@
 #include <chrono>
 #include <cassert>
 #include <array>
+#ifdef PERF
+#include <gperftools/profiler.h>
+#endif
 using namespace std;
 #define fast_io ios_base::sync_with_stdio (false) ; cin.tie(0) ; cout.tie(0) ;
 #define ll long long int
