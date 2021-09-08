@@ -645,6 +645,8 @@ struct BeamSearcher{
             logs.emplace_back(std::move(after_state), actions, before_idx, eval);
         };
 
+        const auto before_machines = before_state.get_machines();
+
         if(before_state.count() == 0 || (before_state.count() == 1 && !before_state.can_buy())){
             Pos from = {-1,-1};
             int max_val = 0;
@@ -746,47 +748,10 @@ struct BeamSearcher{
             // Todo:複数手
             rep(i, vec_max_keiro.size()){
                 const auto& keiro = vec_max_keiro[i];
-                const auto& val = vec_max_val[i];
-                assert(keiro.size() > 0);
-                vector<Pos> vec_bfs;
-                vec_bfs.push_back(keiro.front());
-                bitset<N*N> checked = 0;
-                assert(vec_bfs.size() > 0);
-                assert(vec_bfs.front().in_range());
-                checked[vec_bfs.front().idx()] = true;
-                int idx = 0;
-                while(idx != vec_bfs.size()){
-                    const Pos p = vec_bfs[idx];
-                    idx++;
-
-                    for(const auto& dir : DIRS4){
-                        const Pos&& pp = p + dir;
-                        if(!pp.in_range()) continue;
-                        if(checked[pp.idx()]) continue;
-                        if(!before_state.is_machine(pp)) continue;
-                        checked[pp.idx()] = true;
-                        vec_bfs.push_back(pp);
-                    }
-                }
-
-                // for(const auto& debug : keiro){
-                //     cerr<<debug<<" ";
-                // }
-                // cerr<<endl;
-                // cerr<<"hoge:";
-                // for(const auto& p : POSES_ALL){
-                //     if(before_state.is_machine(p)){
-                //         cerr<<p;
-                //     }
-                // }
-                // cerr<<endl;
-
                 //遠いものから
                 //Todo:消すものが足りない場合に追加したものをそのまま消す可能性
                 //先頭は一歩目なので無視
-                auto itr = vec_bfs.end();
-                assert(vec_bfs.size() > 0);
-                itr--;
+
                 vector<Action> actions;
                 State after_state = before_state;
                 for(const auto& to : keiro){
@@ -796,11 +761,29 @@ struct BeamSearcher{
                         action.kind = BUY;
                         action.to = to;
                     }else{
-                        if(itr == vec_bfs.begin()) break;
+                        const auto evaluate = [&](const Pos& from){
+                            constexpr int sakiyomi = 5;
+                            const int t = after_state.turn();
+                            const int saki_t = min(t, T);
+                            return -(TP2V_ruiseki[saki_t][from.idx()] - TP2V_ruiseki[t][from.idx()]);
+                        };
+                        Pos best_from = {-1,-1};
+                        int best_eval = -INF;
+                        for(const auto& from : before_machines){
+                            if(!after_state.is_machine(from)) continue;
+                            if(after_state.is_kansetsu(from)) continue;
+                            const int eval = evaluate(from);
+                            if(eval > best_eval){
+                                best_eval = eval;
+                                best_from = from;
+                            }
+                        }
+                        if(best_from.y == -1){
+                            break;
+                        }
                         action.kind = MOVE;
-                        action.from = *itr;
+                        action.from = best_from;
                         action.to = to;
-                        --itr;
                     }
 
                     // cerr<<action.kind<<" "<<action.from<<" "<<action.to<<" "<<keiro.size()<<" "<<vec_bfs.size()<<endl;
