@@ -342,6 +342,7 @@ struct State{
     int reserve_money = 0;
     int max_connect_count = 0;
     int adj_pena = 0;
+    // int min_x = 0, max_x = 0, min_y = 0, max_y = 0;
     // int mitsu_pena = 0;
 
     State(){
@@ -485,6 +486,10 @@ struct State{
     void dfs(const Pos& p, bitset<N*N>& checked, int& count, int& sum_val, int& sum_reserve_val, vector<int>& ord, vector<int>& low){
         const bool is_root = count == 0;
         assert(p.in_range());
+        // chmin(min_x, p.x);
+        // chmax(max_x, p.x);
+        // chmin(min_y, p.y);
+        // chmax(max_y, p.y);
         ord[p.idx()] = count;
         count++;
         int root_count = 0;
@@ -541,6 +546,10 @@ struct State{
         reserve_money = 0;
         max_connect_count = 0;
         adj_pena = 0;
+        // min_x = INF;
+        // max_x = 0;
+        // min_y = INF;
+        // max_y = 0;
         // mitsu_pena = 0;
 
         vector<int> ord(N*N), low(N*N, INF);
@@ -581,6 +590,7 @@ struct State{
         //     eval = -1;
         // }
         eval -= adj_pena * 1000;
+        // eval += ((max_x - min_x) + (max_y - min_y)) * count();
         // eval -= mitsu_pena * mitsu_pena * mitsu_pena * get_cost() * 0.01;
         return eval;
     }
