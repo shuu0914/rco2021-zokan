@@ -300,6 +300,7 @@ struct Event{
 vector<vector<int>> TP2V(T, vector<int>(N*N));
 vector<vector<int>> TP2S(T, vector<int>(N*N));
 vector<vector<int>> TP2V_ruiseki(T+1, vector<int>(N*N));
+vector<vector<int>> TP2NS(T+1, vector<int>(N*N));
 vector<vector<Pos>> T2P(T);
 vector<vector<Event>> events(T+1);
 
@@ -928,6 +929,9 @@ struct BeamSearcher{
 void input(){
     int _; cin>>_>>_>>_;
     timer.start();
+    rep(t,T+1){
+        fill(all(TP2NS[t]),INF);
+    }
     rep(i,M){
         int r,c,s,e,v;cin>>r>>c>>s>>e>>v;
         e++;
@@ -936,6 +940,9 @@ void input(){
             TP2V[t][idx(r,c)] += v;
             TP2S[t][idx(r,c)] = s;
             T2P[t].push_back({r,c});
+        }
+        if(s > 0){
+            TP2NS[s-1][idx(r,c)] = s;
         }
         TP2V_ruiseki[s][idx(r,c)] += v;
 
@@ -947,6 +954,13 @@ void input(){
             events[s].push_back(event);
             event.is_S = false;
             events[e].push_back(event);
+        }
+    }
+    rep(idx,N*N){
+        int s = INF;
+        REP(t,T+1){
+            chmin(TP2NS[t][idx], s);
+            s = TP2NS[t][idx];
         }
     }
     rep(idx, N*N){
