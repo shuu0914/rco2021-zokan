@@ -284,6 +284,8 @@ vector<vector<Event>> events(T+1);
 int debug_final_money = 0;
 
 vector<uint16_t> checked(N*N,0);
+vector<uint16_t> ord(N*N), low(N*N,0xffff);
+uint16_t ord_root = (uint16_t)0 - N*N - 1;
 uint16_t check_num = 1;
 
 enum ActionKind{
@@ -453,8 +455,7 @@ struct State_tmp{
         do_turn_end(get_machines());
     }
 
-    void dfs(const Pos& p, int& count, int& sum_val, float& sum_reserve_val, vector<int>& ord, vector<int>& low){
-        const bool is_root = count == 0;
+    void dfs(const Pos& p, uint16_t& count, int& sum_val, float& sum_reserve_val, const bool is_root){
         assert(p.in_range());
         ord[p.idx()] = count;
         count++;
@@ -476,7 +477,7 @@ struct State_tmp{
             }
             root_count++;
             checked[pp.idx()] = check_num;
-            dfs(pp, count, sum_val, sum_reserve_val, ord, low);
+            dfs(pp, count, sum_val, sum_reserve_val, false);
             chmin(low[p.idx()], low[pp.idx()]);
             if(!is_root && ord[p.idx()] <= low[pp.idx()]){
                 is_kansetsu_[p.idx()] = true;
@@ -494,20 +495,26 @@ struct State_tmp{
         reserve_money = 0;
         max_connect_count = 0;
 
-        vector<int> ord(N*N), low(N*N, INF);
         is_kansetsu_ = 0;
 
         for(const auto& base_p : machines){
             if(checked[base_p.idx()] == check_num) continue;
             checked[base_p.idx()] = check_num;
-            int count = 0;
+            uint16_t count = ord_root;
             int sum_val = 0;
             float sum_reserve_val = 0;
-            dfs(base_p, count, sum_val, sum_reserve_val, ord, low);
+            dfs(base_p, count, sum_val, sum_reserve_val, true);
+            count -= ord_root;
             money += count * sum_val;
             //Todo:center_countをかけるタイミングをちゃんと
             reserve_money += count * sum_reserve_val;
             chmax(max_connect_count, count);
+
+            if(ord_root < N*N*2){
+                fill(all(low), 0xffff);
+                ord_root = 0xffff;
+            }
+            ord_root -= N*N*2;
         }
         t++;
 
