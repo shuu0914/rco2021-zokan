@@ -299,8 +299,9 @@ struct Event{
 
 vector<vector<int>> TP2V(T, vector<int>(N*N));
 vector<vector<int>> TP2S(T, vector<int>(N*N));
-vector<vector<int>> TP2V_ruiseki(T+1, vector<int>(N*N));
-vector<vector<int>> TP2NS(T+1, vector<int>(N*N));
+// vector<vector<int>> TP2V_ruiseki(T+1, vector<int>(N*N));
+// vector<vector<int>> TP2NS(T+1, vector<int>(N*N));
+vector<vector<float>> TP2eval(T, vector<float>(N*N));
 vector<vector<Pos>> T2P(T);
 vector<vector<Event>> events(T+1);
 
@@ -340,7 +341,7 @@ struct State_tmp{
     bitset<N*N> is_machines = 0;
     bitset<N*N> is_vegs = 0;
     bitset<N*N> is_kansetsu_ = 0;
-    int reserve_money = 0;
+    float reserve_money = 0;
     int max_connect_count = 0;
     int adj_pena = 0;
     int center_count = 0;
@@ -485,7 +486,7 @@ struct State_tmp{
         do_turn_end(get_machines());
     }
 
-    void dfs(const Pos& p, bitset<N*N>& checked, int& count, int& sum_val, int& sum_reserve_val, vector<int>& ord, vector<int>& low){
+    void dfs(const Pos& p, bitset<N*N>& checked, int& count, int& sum_val, float& sum_reserve_val, vector<int>& ord, vector<int>& low){
         const bool is_root = count == 0;
         assert(p.in_range());
         center_count += CenterJudger::is_center(p);
@@ -502,7 +503,7 @@ struct State_tmp{
         }
 
         const int sakiyomi_dfs = min(MAX_SAKIYOMI_DFS, this->count() - 1);
-        sum_reserve_val += TP2V_ruiseki[min(T, t+sakiyomi_dfs)][p.idx()] - TP2V_ruiseki[t][p.idx()];
+        sum_reserve_val += TP2eval[t][p.idx()];
         int adj_count = 0;
         for(const auto& dir : DIRS4){
             const Pos pp = p + dir;
@@ -564,7 +565,7 @@ struct State_tmp{
             checked[base_p.idx()] = true;
             int count = 0;
             int sum_val = 0;
-            int sum_reserve_val = 0;
+            float sum_reserve_val = 0;
             dfs(base_p, checked, count, sum_val, sum_reserve_val, ord, low);
             money += count * sum_val;
             //Todo:center_countをかけるタイミングをちゃんと
@@ -585,8 +586,8 @@ struct State_tmp{
         }
     }
 
-    int evaluate() const{
-        int eval = 0;
+    float evaluate() const{
+        float eval = 0;
         eval += count() * (t < MAX_BUY_T ? 1e9 / (N*N) : 0);
         eval += money * MAIN_MONEY_WEIGHT;
         eval += reserve_money;
@@ -713,7 +714,7 @@ struct BeamSearcher{
         }
 
         const auto func = [&](const auto UD, const auto LR, const bool must_connect = true){
-            vector<int> dp(N*N);
+            vector<float> dp(N*N);
             if(must_connect){
                 for(const auto& p : POSES_ALL){
                     if(!before_state.is_machine(p)){
@@ -724,33 +725,38 @@ struct BeamSearcher{
             //Todo:正しい？
             const int HOHABA = MAX_HOHABA;
             vector<vector<Pos>> before_pos(HOHABA, vector<Pos>(N*N));
-            vector<int> vec_max_val;
+            vector<float> vec_max_val;
             vector<vector<Pos>> vec_max_keiro;
             rep(_t, HOHABA){
                 //Todo:あってる？
                 const int t = before_state.turn() + _t;
                 if(t >= T) break;
-                int max_val = -1;
+                float max_val = -1;
                 Pos max_pos = {-1,-1};
-                vector<int> dp2(N*N,-INF);
+                vector<float> dp2(N*N,-INF);
                 for(const auto& p : POSES_ALL){
                     if(before_state.is_machine(p)) continue;
                     //Todo:取得済みかどうかのチェック
                     //Todo:累積のほうが良いかも？
-                    const int val = [&](){
+                    const float val = [&](){
                         //降ってきてるはずなのに存在しない → 取得済み
-                        if(TP2S[t][p.idx()] <= before_state.turn() && !before_state.is_veg(p)){
-                            return 0;
-                        }if(t < START_SAKIYOMI || before_state.turn() + SAKIYOMI_TURN <= t){
+                        float ret = 0;
+                        bool exist = TP2S[t][p.idx()] > before_state.turn() || before_state.is_veg(p);
+                        if(t < START_SAKIYOMI){
+                            if(!exist) return 0.0f;
                             //connectしていない場合は何歩目かによって価値が変わる
-                            return TP2V[t][p.idx()] * (must_connect ? 1 : _t + 1);
+                            ret += TP2V[t][p.idx()] * (must_connect ? 1 : _t + 1);
                         }else{
                             //Todo:先読みターン数
                             //Todo:提出時にはassert外すかNDEBUG
                             //Todo:must_connectではないときも先読みしたい 3が降ってくる前において、その後隣に置くことで3*2点をしたい
                             assert(must_connect);
-                            return TP2V_ruiseki[min(T, before_state.turn() + SAKIYOMI_TURN)][p.idx()] - TP2V_ruiseki[t][p.idx()] + TP2V[t][p.idx()];
+                            ret += TP2eval[t][p.idx()];
+                            if(exist){
+                                ret += TP2V[t][p.idx()];
+                            }
                         }
+                        return ret;
                     }();
 
                     const Pos&& pp1 = p + UD;
@@ -773,7 +779,7 @@ struct BeamSearcher{
 
                 dp = std::move(dp2);
 
-                if(max_val == -1) continue;
+                if(max_val == -1.0f) continue;
 
                 if(!must_connect && _t+1 < before_state.count()) continue;
 
@@ -806,19 +812,18 @@ struct BeamSearcher{
                         action.to = to;
                     }else{
                         const auto evaluate = [&](const Pos& from){
-                            if(from.manhattan(to) == 1) return -INF;
+                            if(from.manhattan(to) == 1) return -(float)INF;
                             const int t = after_state.turn();
-                            const int saki_t = min(t, T);
-                            return -(TP2V_ruiseki[saki_t][from.idx()] - TP2V_ruiseki[t][from.idx()]) + (CenterJudger::is_center(from) ? -CENTER_ERASE_PENALTY : 0);
+                            return -TP2eval[t][from.idx()] + (CenterJudger::is_center(from) ? -CENTER_ERASE_PENALTY : 0);
                         };
                         Pos best_from = {-1,-1};
-                        int best_eval = -INF;
+                        float best_eval = -INF;
                         //must_connectでないときでも、before_machinesの中から関節点ではないものを1つずつ消していくのでこれでよい
                         //Todo:序盤は関節点を削除したほうが評価値が向上する可能性
                         for(const auto& from : before_machines){
                             if(!after_state.is_machine(from)) continue;
                             if(after_state.is_kansetsu(from)) continue;
-                            const int eval = evaluate(from);
+                            const float eval = evaluate(from);
                             if(eval > best_eval){
                                 best_eval = eval;
                                 best_from = from;
@@ -929,9 +934,9 @@ struct BeamSearcher{
 void input(){
     int _; cin>>_>>_>>_;
     timer.start();
-    rep(t,T+1){
-        fill(all(TP2NS[t]),INF);
-    }
+    // rep(t,T+1){
+    //     fill(all(TP2NS[t]),INF);
+    // }
     rep(i,M){
         int r,c,s,e,v;cin>>r>>c>>s>>e>>v;
         e++;
@@ -940,11 +945,18 @@ void input(){
             TP2V[t][idx(r,c)] += v;
             TP2S[t][idx(r,c)] = s;
             T2P[t].push_back({r,c});
+            // TP2eval[t][idx(r,c)] += v;
         }
-        if(s > 0){
-            TP2NS[s-1][idx(r,c)] = s;
+        constexpr float GAMMA = 0.75;
+        float val = v;
+        for(int t = s-1; t >= 0; --t){
+            val *= GAMMA;
+            TP2eval[t][idx(r,c)] += val;
         }
-        TP2V_ruiseki[s][idx(r,c)] += v;
+        // if(s > 0){
+        //     TP2NS[s-1][idx(r,c)] = s;
+        // }
+        // TP2V_ruiseki[s][idx(r,c)] += v;
 
         {
             Event event;
@@ -956,18 +968,18 @@ void input(){
             events[e].push_back(event);
         }
     }
-    rep(idx,N*N){
-        int s = INF;
-        REP(t,T+1){
-            chmin(TP2NS[t][idx], s);
-            s = TP2NS[t][idx];
-        }
-    }
-    rep(idx, N*N){
-        rep(t,T){
-            TP2V_ruiseki[t+1][idx] += TP2V_ruiseki[t][idx];
-        }
-    }
+    // rep(idx,N*N){
+    //     int s = INF;
+    //     REP(t,T+1){
+    //         chmin(TP2NS[t][idx], s);
+    //         s = TP2NS[t][idx];
+    //     }
+    // }
+    // rep(idx, N*N){
+    //     rep(t,T){
+    //         TP2V_ruiseki[t+1][idx] += TP2V_ruiseki[t][idx];
+    //     }
+    // }
     rep(t,T+1){
         sort(all(events[t]),[&](const Event& l, const Event& r){
             if(l.is_S != r.is_S){
@@ -989,7 +1001,7 @@ template<class CenterJudger>
 pair<vector<Action>, int> solve(){
     State_tmp<CenterJudger> first_state_;
     first_state_.money = 1;
-    BeamSearcher<int, CenterJudger> bs_er(first_state_);
+    BeamSearcher<float, CenterJudger> bs_er(first_state_);
     auto&& ans = bs_er.solve();
     cerr<<timer.ms()<<"[ms]"<<endl;
     const int final_money = debug_final_money;
