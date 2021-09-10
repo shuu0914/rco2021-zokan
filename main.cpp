@@ -42,8 +42,6 @@ typedef pair<int, int> Pii;
 typedef pair<ll, ll> Pll;
 
 int MAX_BUY_T = 800;
-int SAKIYOMI_ERASE = 5;
-int MAX_SAKIYOMI_DFS = 2;
 int ADJ_PENA_THRESHOLD = 3;
 int CENTER_ERASE_PENALTY = INF/2;
 
@@ -54,8 +52,6 @@ int NOMUST_CONNECT_THRESHOLD = 3;
 int START_SAKIYOMI = 200;
 
 // int MAX_BUY_T = 844;
-// int SAKIYOMI_ERASE = 7;
-// int MAX_SAKIYOMI_DFS = 1;
 // int ADJ_PENA_THRESHOLD = 4;
 // int CENTER_ERASE_PENALTY = 10000;
 
@@ -498,7 +494,6 @@ struct State_tmp{
             is_vegs[p.idx()] = false;
         }
 
-        const int sakiyomi_dfs = min(MAX_SAKIYOMI_DFS, this->count() - 1);
         sum_reserve_val += TP2eval[t][p.idx()];
         int adj_count = 0;
         for(const auto& dir : DIRS4){
@@ -1035,8 +1030,6 @@ int main(int argc, char *argv[]){
 
     if(argc >= 2){
         MAX_BUY_T = stoi(argv[1]);
-        SAKIYOMI_ERASE = stoi(argv[2]);
-        MAX_SAKIYOMI_DFS = stoi(argv[3]);
         ADJ_PENA_THRESHOLD = stoi(argv[4]);
         CENTER_ERASE_PENALTY = stoi(argv[5]);
         CENTER_BONUS = stof(argv[6]);
