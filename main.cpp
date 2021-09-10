@@ -1011,7 +1011,8 @@ pair<vector<Action>, int> solve(){
 
 struct Y14{
     static bool is_center(const Pos& p){
-        return p.y == N/4 || p.y == N*3/4;
+        return false;
+        // return p.y == N/4 || p.y == N*3/4;
     }
 };
 
