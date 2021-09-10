@@ -515,6 +515,8 @@ struct State_tmp{
                 ord_root = 0xffff;
             }
             ord_root -= N*N*2;
+
+            if((int)count == this->count()) break;
         }
         t++;
 
