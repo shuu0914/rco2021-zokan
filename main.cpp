@@ -51,9 +51,7 @@ float CENTER_BONUS = 0.1;
 float MAIN_MONEY_WEIGHT = 1.0;
 float ADJ_PENALTY_WEIGHT = 1000.0;
 int NOMUST_CONNECT_THRESHOLD = 3;
-int SAKIYOMI_TURN = 3;
-
-int START_SAKIYOMI = 500;
+int START_SAKIYOMI = 200;
 
 // int MAX_BUY_T = 844;
 // int SAKIYOMI_ERASE = 7;
@@ -65,8 +63,6 @@ int START_SAKIYOMI = 500;
 // float MAIN_MONEY_WEIGHT = 3.54;
 // float ADJ_PENALTY_WEIGHT = 742.23;
 // int NOMUST_CONNECT_THRESHOLD = 2;
-// int SAKIYOMI_TURN = 0;
-
 // int START_SAKIYOMI = 979;
 
 const int MAX_HOHABA = 6;
@@ -1047,7 +1043,6 @@ int main(int argc, char *argv[]){
         MAIN_MONEY_WEIGHT = stof(argv[7]);
         ADJ_PENALTY_WEIGHT = stof(argv[8]);
         NOMUST_CONNECT_THRESHOLD = stoi(argv[9]);
-        SAKIYOMI_TURN = stoi(argv[10]);
         START_SAKIYOMI = stoi(argv[11]);
     }
 
