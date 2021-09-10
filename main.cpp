@@ -467,11 +467,8 @@ struct State_tmp{
             if(!pp.in_range()) continue;
             if(!is_machine(pp)) continue;
             if(checked[pp.idx()]){
-                //親は後退辺ではない
-                if(ord[pp.idx()] + 1 != ord[p.idx()]){
-                    //後退辺
-                    chmin(low[p.idx()], ord[pp.idx()]);
-                }
+                //後退辺
+                chmin(low[p.idx()], ord[pp.idx()]);
                 continue;
             }
             root_count++;
