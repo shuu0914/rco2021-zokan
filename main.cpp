@@ -814,7 +814,7 @@ struct BeamSearcher{
                         const auto evaluate = [&](const Pos& from){
                             if(from.manhattan(to) == 1) return -(float)INF;
                             const int t = after_state.turn();
-                            return -TP2eval[t][from.idx()] + (CenterJudger::is_center(from) ? -CENTER_ERASE_PENALTY : 0);
+                            return -(TP2eval[t][from.idx()] + after_state.get_veg_value(from)) + (CenterJudger::is_center(from) ? -CENTER_ERASE_PENALTY : 0);
                         };
                         Pos best_from = {-1,-1};
                         float best_eval = -INF;
