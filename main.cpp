@@ -522,7 +522,7 @@ struct State_tmp{
 
     float evaluate() const{
         float eval = 0;
-        eval += min(count(), MAX_BUY_COUNT) * 1e9 / MAX_BUY_COUNT;
+        eval += min(count(), MAX_BUY_COUNT) * (1e9 / MAX_BUY_COUNT);
         eval += money;
         eval += reserve_money;
         return eval;
