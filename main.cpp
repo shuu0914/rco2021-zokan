@@ -41,6 +41,7 @@ using namespace std;
 typedef pair<int, int> Pii;
 typedef pair<ll, ll> Pll;
 
+int MAX_BUY_COUNT = 50;
 int NOMUST_CONNECT_THRESHOLD = 3;
 int START_SAKIYOMI = 200;
 
@@ -274,7 +275,6 @@ struct Event{
 
 vector<vector<int>> TP2V(T, vector<int>(N*N));
 vector<vector<int>> TP2S(T, vector<int>(N*N));
-vector<int> T2V(T);
 // vector<vector<int>> TP2V_ruiseki(T+1, vector<int>(N*N));
 // vector<vector<int>> TP2NS(T+1, vector<int>(N*N));
 vector<vector<float>> TP2eval(T, vector<float>(N*N));
@@ -522,7 +522,7 @@ struct State_tmp{
 
     float evaluate() const{
         float eval = 0;
-        eval += count() * 10'000'000;
+        eval += min(count(), MAX_BUY_COUNT) * (1e9 / MAX_BUY_COUNT);
         eval += money;
         eval += reserve_money;
         return eval;
@@ -734,8 +734,7 @@ struct BeamSearcher{
                 for(const auto& to : keiro){
                     Action action;
                     //Todo:複数回購入できる可能性
-                    constexpr float ALPHA = 0.99;
-                    if(after_state.can_buy() && after_state.get_cost() < T2V[after_state.turn()] * ALPHA){
+                    if(after_state.count() <= MAX_BUY_COUNT && after_state.can_buy()){
                         action.kind = BUY;
                         action.to = to;
                     }else{
@@ -875,7 +874,6 @@ void input(){
             T2P[t].push_back({r,c});
             // TP2eval[t][idx(r,c)] += v;
         }
-        T2V[e-1] += v;
         constexpr float GAMMA = 0.75;
         float val = v;
         for(int t = s-1; t >= 0; --t){
@@ -896,9 +894,6 @@ void input(){
             event.is_S = false;
             events[e].push_back(event);
         }
-    }
-    REP(t,T-1){
-        T2V[t] += T2V[t+1];
     }
     // rep(idx,N*N){
     //     int s = INF;
