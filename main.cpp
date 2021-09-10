@@ -287,7 +287,7 @@ int idx(const int y, const int x){
 }
 
 struct Veg{
-    int r,c,s,e,v;
+    Pos p; int s,e,v;
 };
 vector<Veg> V;
 
@@ -731,26 +731,29 @@ struct BeamSearcher{
             check_vec[base_p.idx()] = i;
             assert(mins[base_p.idx()].first_min > 0);
             queue<Pos> q;
+            q.emplace(base_p);
             for(int d = 0; q.size() > 0; ++d){
                 queue<Pos> next_q;
-                const auto p = q.front();
-                q.pop();
-                if(mins[p.idx()].first_min > d){
-                    mins[p.idx()].second_min = mins[p.idx()].first_min;
-                    mins[p.idx()].second_argmin = mins[p.idx()].first_argmin;
-                    mins[p.idx()].first_min = d;
-                    mins[p.idx()].first_argmin = base_p;
-                }else if(mins[p.idx()].second_min > d){
-                    mins[p.idx()].second_min = d;
-                    mins[p.idx()].second_argmin = base_p;
-                }
-                for(const auto& dir : DIRS4){
-                    Pos&& pp = p + dir;
-                    if(!pp.in_range()) continue;
-                    if(check_vec[pp.idx()] == i) continue;
-                    if(d + 1 >= mins[pp.idx()].second_min) continue;
-                    check_vec[pp.idx()] = i;
-                    next_q.emplace(std::forward<Pos>(pp));
+                while(q.size() > 0){
+                    const auto p = q.front();
+                    q.pop();
+                    if(mins[p.idx()].first_min > d){
+                        mins[p.idx()].second_min = mins[p.idx()].first_min;
+                        mins[p.idx()].second_argmin = mins[p.idx()].first_argmin;
+                        mins[p.idx()].first_min = d;
+                        mins[p.idx()].first_argmin = base_p;
+                    }else if(mins[p.idx()].second_min > d){
+                        mins[p.idx()].second_min = d;
+                        mins[p.idx()].second_argmin = base_p;
+                    }
+                    for(const auto& dir : DIRS4){
+                        Pos&& pp = p + dir;
+                        if(!pp.in_range()) continue;
+                        if(check_vec[pp.idx()] == i) continue;
+                        if(d + 1 >= mins[pp.idx()].second_min) continue;
+                        check_vec[pp.idx()] = i;
+                        next_q.emplace(std::forward<Pos>(pp));
+                    }
                 }
                 q = std::move(next_q);
             }
@@ -762,6 +765,7 @@ struct BeamSearcher{
         for(const auto& p : POSES_ALL){
             total_eval += ValueEstimator::TPD(before_state, before_state.turn(), p, mins[p.idx()].first_min);
             if(mins[p.idx()].first_min == mins[p.idx()].second_min) continue;
+            assert(mins[p.idx()].first_min < mins[p.idx()].second_min);
             dec_evals[mins[p.idx()].first_argmin.idx()] += ValueEstimator::TPD(before_state, before_state.turn(), p, mins[p.idx()].first_min);
             dec_evals[mins[p.idx()].first_argmin.idx()] -= ValueEstimator::TPD(before_state, before_state.turn(), p, mins[p.idx()].second_min);
             assert(dec_evals[mins[p.idx()].first_argmin.idx()] >= 0);
@@ -883,7 +887,7 @@ void input(){
     rep(i,M){
         int r,c,s,e,v;cin>>r>>c>>s>>e>>v;
         e++;
-        V.push_back({r,c,s,e,v});
+        V.push_back({{r,c},s,e,v});
         for(int t = s; t < e; ++t){
             TP2V[t][idx(r,c)] += v;
             TP2S[t][idx(r,c)] = s;
@@ -947,11 +951,54 @@ pair<vector<Action>, int> solve(){
 }
 
 struct Estimator{
+    static vector<vector<vector<float>>> eval_TPD;
+    static void init(){
+        eval_TPD = vector<vector<vector<float>>>(T+1, vector<vector<float>>(N*N, vector<float>(N*2)));
+
+        constexpr float gamma1 = 0.5;
+        for(const Veg& veg : V){
+            //Todo:sのほうが良い？
+            //eから放射状に価値を減少しつつ分配
+            for(const auto& p : POSES_ALL){
+                rep(d,3){
+                    const float val = veg.v * pow(gamma1, d);
+                    // const int t = veg.s - d;
+                    const int t = (veg.e-1) - d;
+                    if(t < 0) break;
+                    eval_TPD[t][p.idx()][d] = val;
+                }
+            }
+        }
+
+        constexpr float gamma2 = 0.6;
+        assert(gamma1 < gamma2);
+        for(const auto& p : POSES_ALL){
+            REP(t,T-1){
+                rep(d,N*2){
+                    eval_TPD[t][p.idx()][d] += eval_TPD[t+1][p.idx()][d] * gamma2;
+                }
+            }
+        }
+
+        //取る = 等倍
+        for(const Veg& veg : V){
+            for(int t = veg.s; t < veg.e-1; ++t){
+                eval_TPD[t][veg.p.idx()][0] += veg.v;
+            }
+        }
+
+    }
     static float TPD(const State& state, const int t, const Pos& p, const int d){
-        if(d > 0) return 0;
-        return state.get_veg_value(p);
+        assert(d < N*2);
+        float val = eval_TPD[t][p.idx()][d];
+        if(d == 0 && TP2V[t][p.idx()] > 0 && state.get_veg_value(p) == 0){
+            // val -= TP2V[t][p.idx()];
+        }
+        return val;
     }
 };
+
+vector<vector<vector<float>>> Estimator::eval_TPD;
 
 int main(int argc, char *argv[]){
     fast_io;
@@ -972,6 +1019,7 @@ int main(int argc, char *argv[]){
 
     input();
 
+    Estimator::init();
     const auto& pa = solve<Estimator>();
     cout<<pa.first<<endl;
     cerr<<"score:"<<pa.second*50<<endl;
