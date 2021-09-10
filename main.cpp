@@ -42,12 +42,6 @@ typedef pair<int, int> Pii;
 typedef pair<ll, ll> Pll;
 
 int MAX_BUY_COUNT = 50;
-int ADJ_PENA_THRESHOLD = 3;
-int CENTER_ERASE_PENALTY = INF/2;
-
-float CENTER_BONUS = 0.1;
-float MAIN_MONEY_WEIGHT = 1.0;
-float ADJ_PENALTY_WEIGHT = 0;
 int NOMUST_CONNECT_THRESHOLD = 3;
 int START_SAKIYOMI = 200;
 
@@ -325,10 +319,6 @@ struct State_tmp{
     bitset<N*N> is_kansetsu_ = 0;
     float reserve_money = 0;
     int max_connect_count = 0;
-    int adj_pena = 0;
-    int center_count = 0;
-    // int min_x = 0, max_x = 0, min_y = 0, max_y = 0;
-    // int mitsu_pena = 0;
 
     State_tmp(){
         for(const auto& p : T2P[0]){
@@ -411,10 +401,6 @@ struct State_tmp{
             if(is_machine(action.to)){
                 return false;
             }
-            //Todo:大丈夫？
-            // if(adj_count(action.to) >= 2){
-            //     return false;
-            // }
             return true;
         }else if(action.kind == MOVE){
             if(!is_machine(action.from)){
@@ -423,10 +409,6 @@ struct State_tmp{
             if(is_machine(action.to)){
                 return false;
             }
-            //Todo:大丈夫？
-            // if(adj_count(action.to) >= 2){
-            //     return false;
-            // }
             return true;
         }else{
             //PASS
@@ -471,11 +453,6 @@ struct State_tmp{
     void dfs(const Pos& p, bitset<N*N>& checked, int& count, int& sum_val, float& sum_reserve_val, vector<int>& ord, vector<int>& low){
         const bool is_root = count == 0;
         assert(p.in_range());
-        center_count += CenterJudger::is_center(p);
-        // chmin(min_x, p.x);
-        // chmax(max_x, p.x);
-        // chmin(min_y, p.y);
-        // chmax(max_y, p.y);
         ord[p.idx()] = count;
         count++;
         int root_count = 0;
@@ -485,12 +462,10 @@ struct State_tmp{
         }
 
         sum_reserve_val += TP2eval[t][p.idx()];
-        int adj_count = 0;
         for(const auto& dir : DIRS4){
             const Pos pp = p + dir;
             if(!pp.in_range()) continue;
             if(!is_machine(pp)) continue;
-            adj_count++;
             if(checked[pp.idx()]){
                 //後退辺
                 chmin(low[p.idx()], ord[pp.idx()]);
@@ -505,21 +480,6 @@ struct State_tmp{
             }
         }
 
-        // int adj8_count = adj_count;
-        // for(auto&& dy : {-1,1}){
-        //     for(auto&& dx : {-1,1}){
-        //         const Pos&& pp = p + Pos(dy,dx);
-        //         if(!pp.in_range()) continue;
-        //         adj8_count += is_machine(pp);
-        //     }
-        // }
-        // if(adj8_count >= 4){
-            // mitsu_pena += 1;
-        // }
-
-        if(adj_count >= ADJ_PENA_THRESHOLD){
-            adj_pena++;
-        }
         //Todo:根の関節点判定にバグないかチェック
         if(is_root && root_count >= 2){
             is_kansetsu_[p.idx()] = true;
@@ -530,13 +490,6 @@ struct State_tmp{
         bitset<N*N> checked = 0;
         reserve_money = 0;
         max_connect_count = 0;
-        adj_pena = 0;
-        center_count = 0;
-        // min_x = INF;
-        // max_x = 0;
-        // min_y = INF;
-        // max_y = 0;
-        // mitsu_pena = 0;
 
         vector<int> ord(N*N), low(N*N, INF);
         is_kansetsu_ = 0;
@@ -550,7 +503,7 @@ struct State_tmp{
             dfs(base_p, checked, count, sum_val, sum_reserve_val, ord, low);
             money += count * sum_val;
             //Todo:center_countをかけるタイミングをちゃんと
-            reserve_money += count * sum_reserve_val * (1 + CENTER_BONUS * center_count);
+            reserve_money += count * sum_reserve_val;
             chmax(max_connect_count, count);
         }
         t++;
@@ -570,15 +523,8 @@ struct State_tmp{
     float evaluate() const{
         float eval = 0;
         eval += min(count(), MAX_BUY_COUNT) * 1e9 / MAX_BUY_COUNT;
-        eval += money * MAIN_MONEY_WEIGHT;
+        eval += money;
         eval += reserve_money;
-        // eval += max_connect_count * max_connect_count;
-        // if(count() >= 4 && max_connect_count != count()){
-        //     eval = -1;
-        // }
-        eval -= adj_pena * ADJ_PENALTY_WEIGHT;
-        // eval += ((max_x - min_x) + (max_y - min_y)) * count();
-        // eval -= mitsu_pena * mitsu_pena * mitsu_pena * get_cost() * 0.01;
         return eval;
     }
 
@@ -795,7 +741,7 @@ struct BeamSearcher{
                         const auto evaluate = [&](const Pos& from){
                             if(from.manhattan(to) == 1) return -(float)INF;
                             const int t = after_state.turn();
-                            return -(TP2eval[t][from.idx()] + after_state.get_veg_value(from)) + (CenterJudger::is_center(from) ? -CENTER_ERASE_PENALTY : 0);
+                            return -(TP2eval[t][from.idx()] + after_state.get_veg_value(from));
                         };
                         Pos best_from = {-1,-1};
                         float best_eval = -INF;
@@ -991,10 +937,7 @@ pair<vector<Action>, int> solve(){
 }
 
 struct Y14{
-    static bool is_center(const Pos& p){
-        return false;
-        // return p.y == N/4 || p.y == N*3/4;
-    }
+
 };
 
 struct X14{
@@ -1019,11 +962,6 @@ int main(int argc, char *argv[]){
     fast_io;
 
     if(argc >= 2){
-        ADJ_PENA_THRESHOLD = stoi(argv[4]);
-        CENTER_ERASE_PENALTY = stoi(argv[5]);
-        CENTER_BONUS = stof(argv[6]);
-        MAIN_MONEY_WEIGHT = stof(argv[7]);
-        ADJ_PENALTY_WEIGHT = stof(argv[8]);
         NOMUST_CONNECT_THRESHOLD = stoi(argv[9]);
         START_SAKIYOMI = stoi(argv[11]);
     }
