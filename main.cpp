@@ -283,6 +283,9 @@ vector<vector<Event>> events(T+1);
 
 int debug_final_money = 0;
 
+vector<uint16_t> checked(N*N,0);
+uint16_t check_num = 1;
+
 enum ActionKind{
     BUY, MOVE, PASS
 };
@@ -450,7 +453,7 @@ struct State_tmp{
         do_turn_end(get_machines());
     }
 
-    void dfs(const Pos& p, bitset<N*N>& checked, int& count, int& sum_val, float& sum_reserve_val, vector<int>& ord, vector<int>& low){
+    void dfs(const Pos& p, int& count, int& sum_val, float& sum_reserve_val, vector<int>& ord, vector<int>& low){
         const bool is_root = count == 0;
         assert(p.in_range());
         ord[p.idx()] = count;
@@ -466,14 +469,14 @@ struct State_tmp{
             const Pos pp = p + dir;
             if(!pp.in_range()) continue;
             if(!is_machine(pp)) continue;
-            if(checked[pp.idx()]){
+            if(checked[pp.idx()] == check_num){
                 //後退辺
                 chmin(low[p.idx()], ord[pp.idx()]);
                 continue;
             }
             root_count++;
-            checked[pp.idx()] = true;
-            dfs(pp, checked, count, sum_val, sum_reserve_val, ord, low);
+            checked[pp.idx()] = check_num;
+            dfs(pp, count, sum_val, sum_reserve_val, ord, low);
             chmin(low[p.idx()], low[pp.idx()]);
             if(!is_root && ord[p.idx()] <= low[pp.idx()]){
                 is_kansetsu_[p.idx()] = true;
@@ -487,7 +490,7 @@ struct State_tmp{
     }
 
     void do_turn_end(const vector<Pos>& machines){
-        bitset<N*N> checked = 0;
+        check_num += 2;
         reserve_money = 0;
         max_connect_count = 0;
 
@@ -495,12 +498,12 @@ struct State_tmp{
         is_kansetsu_ = 0;
 
         for(const auto& base_p : machines){
-            if(checked[base_p.idx()]) continue;
-            checked[base_p.idx()] = true;
+            if(checked[base_p.idx()] == check_num) continue;
+            checked[base_p.idx()] = check_num;
             int count = 0;
             int sum_val = 0;
             float sum_reserve_val = 0;
-            dfs(base_p, checked, count, sum_val, sum_reserve_val, ord, low);
+            dfs(base_p, count, sum_val, sum_reserve_val, ord, low);
             money += count * sum_val;
             //Todo:center_countをかけるタイミングをちゃんと
             reserve_money += count * sum_reserve_val;
