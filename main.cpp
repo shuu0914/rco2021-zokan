@@ -41,7 +41,7 @@ using namespace std;
 typedef pair<int, int> Pii;
 typedef pair<ll, ll> Pll;
 
-int MAX_BUY_T = 800;
+int MAX_BUY_T = 850;
 int ADJ_PENA_THRESHOLD = 3;
 int CENTER_ERASE_PENALTY = INF/2;
 
