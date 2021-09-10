@@ -41,7 +41,7 @@ using namespace std;
 typedef pair<int, int> Pii;
 typedef pair<ll, ll> Pll;
 
-int MAX_BUY_T = 850;
+int MAX_BUY_COUNT = 50;
 int ADJ_PENA_THRESHOLD = 3;
 int CENTER_ERASE_PENALTY = INF/2;
 
@@ -50,16 +50,6 @@ float MAIN_MONEY_WEIGHT = 1.0;
 float ADJ_PENALTY_WEIGHT = 0;
 int NOMUST_CONNECT_THRESHOLD = 3;
 int START_SAKIYOMI = 200;
-
-// int MAX_BUY_T = 844;
-// int ADJ_PENA_THRESHOLD = 4;
-// int CENTER_ERASE_PENALTY = 10000;
-
-// float CENTER_BONUS = 0.0756;
-// float MAIN_MONEY_WEIGHT = 3.54;
-// float ADJ_PENALTY_WEIGHT = 742.23;
-// int NOMUST_CONNECT_THRESHOLD = 2;
-// int START_SAKIYOMI = 979;
 
 const int MAX_HOHABA = 6;
 const int BW = 10;
@@ -579,7 +569,7 @@ struct State_tmp{
 
     float evaluate() const{
         float eval = 0;
-        eval += count() * (t < MAX_BUY_T ? 1e9 / (N*N) : 0);
+        eval += min(count(), MAX_BUY_COUNT) * 1e9 / MAX_BUY_COUNT;
         eval += money * MAIN_MONEY_WEIGHT;
         eval += reserve_money;
         // eval += max_connect_count * max_connect_count;
@@ -798,7 +788,7 @@ struct BeamSearcher{
                 for(const auto& to : keiro){
                     Action action;
                     //Todo:複数回購入できる可能性
-                    if(after_state.turn() <= MAX_BUY_T && after_state.can_buy()){
+                    if(after_state.count() <= MAX_BUY_COUNT && after_state.can_buy()){
                         action.kind = BUY;
                         action.to = to;
                     }else{
@@ -1029,7 +1019,6 @@ int main(int argc, char *argv[]){
     fast_io;
 
     if(argc >= 2){
-        MAX_BUY_T = stoi(argv[1]);
         ADJ_PENA_THRESHOLD = stoi(argv[4]);
         CENTER_ERASE_PENALTY = stoi(argv[5]);
         CENTER_BONUS = stof(argv[6]);
