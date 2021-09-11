@@ -617,7 +617,9 @@ struct BeamSearcher{
             //Todo:正しい？
             const int HOHABA = MAX_HOHABA;
             vector<float> vec_max_val;
+            vec_max_val.reserve(HOHABA);
             vector<vector<Pos>> vec_max_keiro;
+            vec_max_keiro.reserve(HOHABA);
             rep(_t, HOHABA){
                 const auto before_check_num = check_num;
                 check_num += 2;
@@ -675,6 +677,7 @@ struct BeamSearcher{
                 Pos p = max_pos;
                 assert(p.y != -1);
                 vector<Pos> kei;
+                kei.reserve(_t+1);
                 REP(_i, _t+1){
                     kei.emplace_back(p);
                     p = before_pos[_i][p.idx()];
@@ -691,6 +694,7 @@ struct BeamSearcher{
                 const auto& keiro = vec_max_keiro[i];
 
                 vector<Action> actions;
+                actions.reserve(keiro.size());
                 State after_state = before_state;
                 for(const auto& to : keiro){
                     Action action;
@@ -752,6 +756,7 @@ struct BeamSearcher{
     vector<Action> back_prop(const int last_idx){
         debug_final_money = logs[last_idx].state.get_money();
         vector<Action> ans;
+        ans.reserve(T);
         int idx = last_idx;
         while(idx != 0){
             if(logs[idx].actions.size() == 0){
