@@ -843,7 +843,9 @@ struct BeamSearcher{
         }
 
         const auto& final_pq = vec_pq[T];
-        const auto itr = max_element(all(final_pq));
+        const auto itr = max_element(all(final_pq),[&](const auto& l, const auto& r){
+            return logs[l.second].state.get_money() < logs[r.second].state.get_money();
+        });
         const vector<Action> ans = back_prop(itr->second);
         // State state;
         // for(const auto& action : ans){
