@@ -44,14 +44,14 @@ typedef uint16_t HASH_TYPE;
 
 int MAX_BUY_COUNT = 50;
 int NOMUST_CONNECT_THRESHOLD = 3;
-int START_SAKIYOMI = 100;
+int START_SAKIYOMI = 259;
 int HASH_STRIDE = 4;
 int HASH_POS_NUM = 8;
 
 int END_HASH_AREA = 1000;
-float GAMMA_START = 0.868f;
-float GAMMA_END = 0.943f;
-float SUMI_WEIGHT = 0.8;
+float GAMMA_START = 0.86828118f;
+float GAMMA_END = 0.94306192f;
+float SUMI_WEIGHT = 0.76926073f;
 int HOHABA = 6;
 
 constexpr int MAX_HOHABA = 6;
@@ -425,7 +425,7 @@ struct State_tmp{
             is_vegs[p.idx()] = false;
         }
 
-        sum_reserve_val += TP2eval[t][p.idx()];
+        sum_reserve_val += (turn() >= START_SAKIYOMI ? TP2eval[t][p.idx()] : 0);
         for(const auto& pp : POSES_EDGE[p.idx()]){
             if(!is_machine(pp)) continue;
             if(checked[pp.idx()] == check_num){
@@ -1071,16 +1071,16 @@ int main(int argc, char *argv[]){
     fast_io;
 
     if(argc >= 2){
-        // MAX_BUY_COUNT = stoi(argv[1]);
+        MAX_BUY_COUNT = stoi(argv[1]);
         // NOMUST_CONNECT_THRESHOLD = stoi(argv[2]);
-        // START_SAKIYOMI = stoi(argv[3]);
+        // START_SAKIYOMI = stoi(argv[1]);
         // HASH_STRIDE = stoi(argv[4]);
         // HASH_POS_NUM = stoi(argv[5]);
 
         // END_HASH_AREA = stoi(argv[6]);
-        GAMMA_START = stof(argv[1]);
-        GAMMA_END = stof(argv[2]);
-        // SUMI_WEIGHT = stof(argv[9]);
+        // GAMMA_START = stof(argv[1]);
+        // GAMMA_END = stof(argv[2]);
+        // SUMI_WEIGHT = stof(argv[1]);
         // HOHABA = stoi(argv[10]);
     }
 
