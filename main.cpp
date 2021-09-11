@@ -823,62 +823,6 @@ struct BeamSearcher{
 void input(){
     int _; cin>>_>>_>>_;
     timer.start();
-    // rep(t,T+1){
-    //     fill(all(TP2NS[t]),INF);
-    // }
-    rep(i,M){
-        int r,c,s,e,v;cin>>r>>c>>s>>e>>v;
-        e++;
-        V.push_back({r,c,s,e,v});
-        for(int t = s; t < e; ++t){
-            TP2V[t][idx(r,c)] += v;
-            TP2S[t][idx(r,c)] = s;
-            T2P[t].push_back({r,c});
-            // TP2eval[t][idx(r,c)] += v;
-        }
-        constexpr float GAMMA = 0.75;
-        float val = v;
-        for(int t = s-1; t >= 0; --t){
-            val *= GAMMA;
-            TP2eval[t][idx(r,c)] += val;
-        }
-        // if(s > 0){
-        //     TP2NS[s-1][idx(r,c)] = s;
-        // }
-        // TP2V_ruiseki[s][idx(r,c)] += v;
-
-        {
-            Event event;
-            event.p = {r,c};
-            event.val = v;
-            event.is_S = true;
-            events[s].push_back(event);
-            event.is_S = false;
-            events[e].push_back(event);
-        }
-    }
-    // rep(idx,N*N){
-    //     int s = INF;
-    //     REP(t,T+1){
-    //         chmin(TP2NS[t][idx], s);
-    //         s = TP2NS[t][idx];
-    //     }
-    // }
-    // rep(idx, N*N){
-    //     rep(t,T){
-    //         TP2V_ruiseki[t+1][idx] += TP2V_ruiseki[t][idx];
-    //     }
-    // }
-    rep(t,T+1){
-        sort(all(events[t]),[&](const Event& l, const Event& r){
-            if(l.is_S != r.is_S){
-                //rがSならlはEで、lのほうが左
-                return r.is_S;
-            }
-            //なんでもよい
-            return l.val < r.val;
-        });
-    }
     rep(y,N){
         rep(x,N){
             POSES_ALL.push_back({y,x});
@@ -904,6 +848,73 @@ void input(){
     POSES_ALL.shrink_to_fit();
     POSES_EDGE.shrink_to_fit();
     POSES_EDGE_DIR.shrink_to_fit();
+    // rep(t,T+1){
+    //     fill(all(TP2NS[t]),INF);
+    // }
+    constexpr float GAMMA = 0.75;
+    rep(i,M){
+        int r,c,s,e,v;cin>>r>>c>>s>>e>>v;
+        e++;
+        V.push_back({r,c,s,e,v});
+        for(int t = s; t < e; ++t){
+            TP2V[t][idx(r,c)] += v;
+            TP2S[t][idx(r,c)] = s;
+            T2P[t].push_back({r,c});
+            // TP2eval[t][idx(r,c)] += v;
+        }
+        if(s-1 >= 0){
+            TP2eval[s-1][idx(r,c)] += v * GAMMA;
+        }
+        // constexpr float ALPHA = 0;
+        // if(e-2 >= 0){
+        //     const Pos base_p = {r,c};
+        //     for(const auto& pp : POSES_EDGE[base_p.idx()]){
+        //         TP2eval[e-2][pp.idx()] += v * ALPHA;
+        //     }
+        // }
+        // if(s > 0){
+        //     TP2NS[s-1][idx(r,c)] = s;
+        // }
+        // TP2V_ruiseki[s][idx(r,c)] += v;
+
+        {
+            Event event;
+            event.p = {r,c};
+            event.val = v;
+            event.is_S = true;
+            events[s].push_back(event);
+            event.is_S = false;
+            events[e].push_back(event);
+        }
+    }
+
+    for(const auto& p : POSES_ALL){
+        REP(t,T-1){
+            TP2eval[t][p.idx()] += TP2eval[t+1][p.idx()] * GAMMA;
+        }
+    }
+    // rep(idx,N*N){
+    //     int s = INF;
+    //     REP(t,T+1){
+    //         chmin(TP2NS[t][idx], s);
+    //         s = TP2NS[t][idx];
+    //     }
+    // }
+    // rep(idx, N*N){
+    //     rep(t,T){
+    //         TP2V_ruiseki[t+1][idx] += TP2V_ruiseki[t][idx];
+    //     }
+    // }
+    rep(t,T+1){
+        sort(all(events[t]),[&](const Event& l, const Event& r){
+            if(l.is_S != r.is_S){
+                //rがSならlはEで、lのほうが左
+                return r.is_S;
+            }
+            //なんでもよい
+            return l.val < r.val;
+        });
+    }
 
     for(const Pos& p : POSES_ALL){
         for(const Pos& pp : POSES_ALL){
