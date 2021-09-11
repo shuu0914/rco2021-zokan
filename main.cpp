@@ -55,7 +55,7 @@ float SUMI_WEIGHT = 0.76926073f;
 int HOHABA = 6;
 
 constexpr int MAX_HOHABA = 6;
-const int BW = 17;
+int BW = 10;
 
 uint32_t xorshift(){
     static uint32_t x = 123456789;
@@ -829,6 +829,13 @@ struct BeamSearcher{
             vec_pq[0].emplace_back(0, 0);
         }
         rep(t, T){
+            if(t == 700){
+                BW = 20;
+            }else if(t == 800){
+                BW = 26;
+            }else if(t == 900){
+                BW = 32;
+            }
             auto& current_pq = vec_pq[t];
             // partial_sort(current_pq.begin(), current_pq.begin() + min(BW * 2, (int)current_pq.size()), current_pq.end(), greater<>());
             sort(all(current_pq), greater<>());
