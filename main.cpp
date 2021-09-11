@@ -40,12 +40,14 @@ using namespace std;
 #define all(v) v.begin(), v.end()
 typedef pair<int, int> Pii;
 typedef pair<ll, ll> Pll;
+typedef uint16_t HASH_TYPE;
 
 int MAX_BUY_COUNT = 50;
 int NOMUST_CONNECT_THRESHOLD = 3;
 int START_SAKIYOMI = 200;
 constexpr int HASH_STRIDE = 4;
-typedef uint16_t HASH_TYPE;
+constexpr int HASH_POS_NUM = 8;
+constexpr int END_HASH_AREA = 1000;
 
 const int MAX_HOHABA = 6;
 const int BW = 17;
@@ -264,6 +266,7 @@ ostream& operator<<(ostream& os, const vector<Action>& actions){
 vector<Pos> POSES_ALL;
 vector<vector<Pos>> POSES_EDGE(N*N);
 vector<vector<vector<Pos>>> POSES_EDGE_DIR(4, vector<vector<Pos>>(N*N));
+vector<Pos> POSES_HASH;
 
 template<class CenterJudger>
 struct State_tmp{
@@ -493,22 +496,29 @@ struct State_tmp{
     HASH_TYPE hash() const{
         assert(N%HASH_STRIDE == 0);
         HASH_TYPE ret = 0;
-        for(int y_s = 0; y_s < N; y_s += HASH_STRIDE){
-            for(int x_s = 0; x_s < N; x_s += HASH_STRIDE){
-                ret *= 2;
-                bool exist = false;
-                for(int y = y_s; y < y_s + HASH_STRIDE; ++y){
-                    for(int x = x_s; x < x_s + HASH_STRIDE; ++x){
-                        if(is_machines[idx(y,x)]){
-                            exist = true;
-                            break;
+        if(t < END_HASH_AREA){
+            for(int y_s = 0; y_s < N; y_s += HASH_STRIDE){
+                for(int x_s = 0; x_s < N; x_s += HASH_STRIDE){
+                    ret *= 2;
+                    bool exist = false;
+                    for(int y = y_s; y < y_s + HASH_STRIDE; ++y){
+                        for(int x = x_s; x < x_s + HASH_STRIDE; ++x){
+                            if(is_machines[idx(y,x)]){
+                                exist = true;
+                                break;
+                            }
                         }
+                        if(exist) break;
                     }
-                    if(exist) break;
+                    if(exist){
+                        ret += 1;
+                    }
                 }
-                if(exist){
-                    ret += 1;
-                }
+            }
+        }else{
+            for(const auto& p : POSES_HASH){
+                ret *= 2;
+                ret += is_machine(p.idx());
             }
         }
         return ret;
@@ -926,6 +936,14 @@ void input(){
             event.is_S = false;
             events[e].push_back(event);
         }
+    }
+
+    partial_sort(V.begin(), V.begin() + HASH_POS_NUM, V.end(), [](const Veg& l, const Veg& r){
+        return l.v > r.v;
+    });
+    POSES_HASH.reserve(HASH_POS_NUM);
+    rep(i,HASH_POS_NUM){
+        POSES_HASH.emplace_back(V[i].r, V[i].c);
     }
 
     for(const auto& p : POSES_ALL){
