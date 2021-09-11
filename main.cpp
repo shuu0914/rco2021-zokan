@@ -44,9 +44,11 @@ typedef pair<ll, ll> Pll;
 int MAX_BUY_COUNT = 50;
 int NOMUST_CONNECT_THRESHOLD = 3;
 int START_SAKIYOMI = 200;
+constexpr int HASH_STRIDE = 4;
+typedef uint16_t HASH_TYPE;
 
 const int MAX_HOHABA = 6;
-const int BW = 18;
+const int BW = 17;
 
 uint32_t xorshift(){
     static uint32_t x = 123456789;
@@ -488,8 +490,28 @@ struct State_tmp{
         return eval;
     }
 
-    bitset<N*N> hash() const{
-        return is_vegs ^ is_machines;
+    HASH_TYPE hash() const{
+        assert(N%HASH_STRIDE == 0);
+        HASH_TYPE ret = 0;
+        for(int y_s = 0; y_s < N; y_s += HASH_STRIDE){
+            for(int x_s = 0; x_s < N; x_s += HASH_STRIDE){
+                ret *= 2;
+                bool exist = false;
+                for(int y = y_s; y < y_s + HASH_STRIDE; ++y){
+                    for(int x = x_s; x < x_s + HASH_STRIDE; ++x){
+                        if(is_machines[idx(y,x)]){
+                            exist = true;
+                            break;
+                        }
+                    }
+                    if(exist) break;
+                }
+                if(exist){
+                    ret += 1;
+                }
+            }
+        }
+        return ret;
     }
 };
 
@@ -791,7 +813,7 @@ struct BeamSearcher{
             // partial_sort(current_pq.begin(), current_pq.begin() + min(BW * 2, (int)current_pq.size()), current_pq.end(), greater<>());
             sort(all(current_pq), greater<>());
             int vec_idx = 0;
-            unordered_set<bitset<N*N>> S;
+            unordered_set<HASH_TYPE> S;
             for(int _t = 0; _t < BW && vec_idx < current_pq.size(); ++_t, ++vec_idx){
                 const int idx = current_pq[vec_idx].second;
                 const auto& state = logs[idx].state;
