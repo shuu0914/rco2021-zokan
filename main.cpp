@@ -50,6 +50,7 @@ constexpr int HASH_POS_NUM = 8;
 constexpr int END_HASH_AREA = 1000;
 constexpr float GAMMA_START = 0.0;
 constexpr float GAMMA_END = 1.0;
+constexpr float SUMI_WEIGHT = 0.8;
 
 const int MAX_HOHABA = 6;
 const int BW = 17;
@@ -920,7 +921,8 @@ void input(){
             // TP2eval[t][idx(r,c)] += v;
         }
         if(s-1 >= 0){
-            TP2eval[s-1][idx(r,c)] += v * gammas[s-1];
+            const bool is_sumi = r==0 || r==N-1 || c==0 || c==N-1;
+            TP2eval[s-1][idx(r,c)] += v * gammas[s-1] * (is_sumi ? SUMI_WEIGHT : 1.0f);
         }
         // constexpr float ALPHA = 0;
         // if(e-2 >= 0){
