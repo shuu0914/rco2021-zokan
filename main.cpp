@@ -314,6 +314,9 @@ ostream& operator<<(ostream& os, const vector<Action>& actions){
     return os;
 }
 
+vector<Pos> POSES_ALL;
+vector<vector<Pos>> POSES_EDGE(N*N);
+
 template<class CenterJudger>
 struct State_tmp{
     int money = 1;
@@ -366,6 +369,11 @@ struct State_tmp{
         return money;
     }
 
+    void change_machine(const Pos& p, const bool bl){
+        assert(is_machine(p) != bl);
+        is_machines[p.idx()] = bl;
+    }
+
     vector<Pos> get_machines() const{
         vector<Pos> ret;
         ret.reserve(machine_count);
@@ -381,9 +389,7 @@ struct State_tmp{
 
     int count_adj_machine(const Pos& p) const{
         int ret = 0;
-        for(const auto& dir : DIRS4){
-            const Pos&& pp = p + dir;
-            if(!pp.in_range()) continue;
+        for(const auto& pp : POSES_EDGE[p.idx()]){
             ret += is_machine(pp);
         }
         return ret;
@@ -392,9 +398,7 @@ struct State_tmp{
     bool can_action(const Action& action) const{
         const auto adj_count = [&](const Pos& p){
             int count = 0;
-            for(const auto& dir : DIRS4){
-                const Pos&& pp = p + dir;
-                if(!pp.in_range()) continue;
+            for(const auto& pp : POSES_EDGE[p.idx()]){
                 count += is_machine(pp);
             }
             return count;
@@ -466,9 +470,7 @@ struct State_tmp{
         }
 
         sum_reserve_val += TP2eval[t][p.idx()];
-        for(const auto& dir : DIRS4){
-            const Pos pp = p + dir;
-            if(!pp.in_range()) continue;
+        for(const auto& pp : POSES_EDGE[p.idx()]){
             if(!is_machine(pp)) continue;
             if(checked[pp.idx()] == check_num){
                 //後退辺
@@ -544,8 +546,6 @@ struct State_tmp{
         return is_vegs ^ is_machines;
     }
 };
-
-vector<Pos> POSES_ALL;
 
 template<typename Eval, class CenterJudger>
 struct BeamSearcher{
@@ -932,8 +932,16 @@ void input(){
     rep(y,N){
         rep(x,N){
             POSES_ALL.push_back({y,x});
+            const Pos&& p = {y,x};
+            for(const Dir& dir : DIRS4){
+                const Pos&& pp = p + dir;
+                if(!pp.in_range()) continue;
+                POSES_EDGE[p.idx()].emplace_back(pp);
+            }
         }
     }
+    POSES_ALL.shrink_to_fit();
+    POSES_EDGE.shrink_to_fit();
 }
 
 template<class CenterJudger>
