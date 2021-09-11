@@ -662,7 +662,8 @@ struct BeamSearcher{
                 const int t = before_state.turn() + _t;
                 if(t >= T) break;
                 float max_val = -1;
-                Pos max_pos = {-1,-1};
+                Pos max_pos = {N*N};
+                Pos first_pos = {N*N};
                 for(const auto& p : POSES_ALL){
                     if(checked[p.idx()] != before_check_num) continue;
                     for(const Pos& pp : POSES_EDGE_DIR[UDLR][p.idx()]){
@@ -701,6 +702,11 @@ struct BeamSearcher{
                             }
                         }
                     }
+                }
+
+                //多様性確保のために以降は探索対象外とする
+                if(max_pos != Pos(N*N)){
+                    checked2[max_pos.idx()] = check_num - 2;
                 }
 
                 swap(dp, dp2);
