@@ -670,7 +670,7 @@ struct BeamSearcher{
                             //降ってきてるはずなのに存在しない → 取得済み
                             float ret = 0;
                             bool exist = TP2S[t][pp.idx()] > before_state.turn() || before_state.is_veg(pp);
-                            if(t < START_SAKIYOMI){
+                            if(before_state.turn() < START_SAKIYOMI){
                                 if(!exist) return 0.0f;
                                 //connectしていない場合は何歩目かによって価値が変わる
                                 ret += TP2V[t][pp.idx()] * (must_connect ? 1 : _t + 1);
