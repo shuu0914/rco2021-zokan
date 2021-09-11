@@ -496,6 +496,7 @@ struct State_tmp{
 };
 
 vector<vector<Pos>> before_pos(MAX_HOHABA, vector<Pos>(N*N));
+vector<float> dp(N*N), dp2(N*N);
 
 template<typename Eval, class CenterJudger>
 struct BeamSearcher{
@@ -603,14 +604,15 @@ struct BeamSearcher{
         }
 
         const auto func = [&](const int UDLR, const bool must_connect = true){
-            vector<float> dp(N*N), dp2(N*N);
-            fill(all(checked), check_num);
             if(must_connect){
-                for(const auto& p : POSES_ALL){
-                    if(!before_state.is_machine(p)){
-                        checked[p.idx()] = check_num-2;
-                    }
+                fill(all(checked), check_num - 2);
+                for(const auto& p : before_machines){
+                    checked[p.idx()] = check_num;
+                    dp[p.idx()] = 0;
                 }
+            }else{
+                fill(all(checked), check_num);
+                fill(all(dp), 0);
             }
             //Todo:正しい？
             const int HOHABA = MAX_HOHABA;
