@@ -787,7 +787,7 @@ struct BeamSearcher{
         }
     }
 
-    vector<Action> back_prop(const int last_idx){
+    vector<Action> back_prop(const int last_idx, int& last_buy_log_idx){
         debug_final_money = logs[last_idx].state.get_money();
         vector<Action> ans;
         ans.reserve(T);
@@ -795,9 +795,15 @@ struct BeamSearcher{
         while(idx != 0){
             if(logs[idx].actions.size() == 0){
                 ans.emplace_back(logs[idx].action);
+                if(last_buy_log_idx == 0 && logs[idx].action.kind == BUY){
+                    last_buy_log_idx = idx;
+                }
             }else{
                 REP(j,logs[idx].actions.size()){
                     const auto& action = logs[idx].actions[j];
+                    if(last_buy_log_idx == 0 && logs[idx].actions[j].kind == BUY){
+                        last_buy_log_idx = idx;
+                    }
                     ans.emplace_back(action);
                 }
             }
@@ -842,17 +848,68 @@ struct BeamSearcher{
             }
         }
 
-        const auto& final_pq = vec_pq[T];
-        const auto itr = max_element(all(final_pq),[&](const auto& l, const auto& r){
-            return logs[l.second].state.get_money() < logs[r.second].state.get_money();
-        });
-        const vector<Action> ans = back_prop(itr->second);
-        // State state;
-        // for(const auto& action : ans){
-        //     state.do_action(action);
-        //     cerr<<state.t-1<<" "<<state.money<<endl;
+        int best_score = -INF;
+        vector<Action> best_ans;
+        int last_buy_log_idx = 0;
+        {
+            const auto& final_pq = vec_pq[T];
+            const auto itr = max_element(all(final_pq),[&](const auto& l, const auto& r){
+                return logs[l.second].state.get_money() < logs[r.second].state.get_money();
+            });
+
+            //最後のBuyに紐付いたlogのidx
+            //そのlogのStateは購入直後の状態
+            const int score = logs[itr->second].state.get_money();
+            vector<Action> ans = back_prop(itr->second, last_buy_log_idx);
+            if(score > best_score){
+                best_score = score;
+                best_ans = std::move(ans);
+            }
+        }
+        // cerr<<best_score<<endl;
+
+        // //MAX_BUY_COUNTを変えてもう一度
+        // MAX_BUY_COUNT += 1;
+        // const State& last_buy_state = logs[last_buy_log_idx].state;
+        // for(int t = last_buy_state.turn(); t <= T; ++t){
+        //     vec_pq[t].clear();
         // }
-        return ans;
+        // vec_pq[last_buy_state.turn()].emplace_back(logs[last_buy_log_idx].eval, last_buy_log_idx);
+        // for(int t = last_buy_state.turn(); t < T; ++t){
+        //     auto& current_pq = vec_pq[t];
+        //     // partial_sort(current_pq.begin(), current_pq.begin() + min(BW * 2, (int)current_pq.size()), current_pq.end(), greater<>());
+        //     sort(all(current_pq), greater<>());
+        //     int vec_idx = 0;
+        //     unordered_set<HASH_TYPE> S;
+        //     for(int _t = 0; _t < BW && vec_idx < current_pq.size(); ++_t, ++vec_idx){
+        //         const int idx = current_pq[vec_idx].second;
+        //         const auto& state = logs[idx].state;
+        //         const auto& hash = state.hash();
+        //         if(S.count(hash) > 0){
+        //             _t--;
+        //             continue;
+        //         }
+        //         S.insert(hash);
+
+        //         expand(state, idx);
+        //     }
+        // }
+        // {
+        //     const auto& final_pq = vec_pq[T];
+        //     const auto itr = max_element(all(final_pq),[&](const auto& l, const auto& r){
+        //         return logs[l.second].state.get_money() < logs[r.second].state.get_money();
+        //     });
+        //     //最後のBuyに紐付いたlogのidx
+        //     //そのlogのStateは購入直後の状態
+        //     const int score = logs[itr->second].state.get_money();
+        //     cerr<<score<<endl;
+        //     vector<Action> ans = back_prop(itr->second, last_buy_log_idx);
+        //     if(score > best_score){
+        //         best_score = score;
+        //         best_ans = std::move(ans);
+        //     }
+        // }
+        return best_ans;
     }
 };
 
