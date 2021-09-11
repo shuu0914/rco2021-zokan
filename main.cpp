@@ -666,7 +666,7 @@ struct BeamSearcher{
                         if(before_state.is_machine(pp)) continue;
                         //Todo:取得済みかどうかのチェック
                         //Todo:累積のほうが良いかも？
-                        const float val = [&](){
+                        const float val_add = [&](){
                             //降ってきてるはずなのに存在しない → 取得済み
                             float ret = 0;
                             bool exist = TP2S[t][pp.idx()] > before_state.turn() || before_state.is_veg(pp);
@@ -685,12 +685,13 @@ struct BeamSearcher{
                                 }
                             }
                             return ret;
-                        }() + dp[p.idx()];
+                        }();
+                        const float val = val_add + dp[p.idx()];
                         if(checked2[pp.idx()] != before_check_num || dp2[pp.idx()] < val){
                             dp2[pp.idx()] = val;
                             checked2[pp.idx()] = check_num;
                             before_pos[_t][pp.idx()] = p;
-                            if(val > max_val){
+                            if(val > max_val && val_add > 0){
                                 max_val = val;
                                 max_pos = pp;
                             }
