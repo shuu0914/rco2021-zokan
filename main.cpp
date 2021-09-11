@@ -46,7 +46,7 @@ int NOMUST_CONNECT_THRESHOLD = 3;
 int START_SAKIYOMI = 200;
 
 const int MAX_HOHABA = 6;
-const int BW = 10;
+const int BW = 15;
 
 uint32_t xorshift(){
     static uint32_t x = 123456789;
