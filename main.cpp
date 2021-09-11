@@ -48,6 +48,8 @@ int START_SAKIYOMI = 100;
 constexpr int HASH_STRIDE = 4;
 constexpr int HASH_POS_NUM = 8;
 constexpr int END_HASH_AREA = 1000;
+constexpr float GAMMA_START = 0.0;
+constexpr float GAMMA_END = 1.0;
 
 const int MAX_HOHABA = 6;
 const int BW = 17;
@@ -901,7 +903,11 @@ void input(){
     // rep(t,T+1){
     //     fill(all(TP2NS[t]),INF);
     // }
-    constexpr float GAMMA = 0.75;
+    vector<float> gammas(T);
+    rep(t,T){
+        const float gamma = GAMMA_START + (GAMMA_END - GAMMA_START) * t / T;
+        gammas[t] = gamma;
+    }
     rep(i,M){
         int r,c,s,e,v;cin>>r>>c>>s>>e>>v;
         e++;
@@ -913,7 +919,7 @@ void input(){
             // TP2eval[t][idx(r,c)] += v;
         }
         if(s-1 >= 0){
-            TP2eval[s-1][idx(r,c)] += v * GAMMA;
+            TP2eval[s-1][idx(r,c)] += v * gammas[s-1];
         }
         // constexpr float ALPHA = 0;
         // if(e-2 >= 0){
@@ -948,7 +954,7 @@ void input(){
 
     for(const auto& p : POSES_ALL){
         REP(t,T-1){
-            TP2eval[t][p.idx()] += TP2eval[t+1][p.idx()] * GAMMA;
+            TP2eval[t][p.idx()] += TP2eval[t+1][p.idx()] * gammas[t];
         }
     }
     // rep(idx,N*N){
