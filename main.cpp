@@ -865,13 +865,13 @@ void input(){
         if(s-1 >= 0){
             TP2eval[s-1][idx(r,c)] += v * GAMMA;
         }
-        // constexpr float ALPHA = 0;
-        // if(e-2 >= 0){
-        //     const Pos base_p = {r,c};
-        //     for(const auto& pp : POSES_EDGE[base_p.idx()]){
-        //         TP2eval[e-2][pp.idx()] += v * ALPHA;
-        //     }
-        // }
+        constexpr float ALPHA = 0.01;
+        if(s-1 >= 0){
+            const Pos base_p = {r,c};
+            for(const auto& pp : POSES_EDGE[base_p.idx()]){
+                TP2eval[s-1][pp.idx()] += v * ALPHA;
+            }
+        }
         // if(s > 0){
         //     TP2NS[s-1][idx(r,c)] = s;
         // }
