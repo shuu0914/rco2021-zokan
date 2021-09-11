@@ -49,8 +49,8 @@ int HASH_STRIDE = 4;
 int HASH_POS_NUM = 8;
 
 int END_HASH_AREA = 1000;
-float GAMMA_START = 0.0;
-float GAMMA_END = 1.0;
+float GAMMA_START = 0.3;
+float GAMMA_END = 0.95;
 float SUMI_WEIGHT = 0.8;
 int HOHABA = 6;
 
