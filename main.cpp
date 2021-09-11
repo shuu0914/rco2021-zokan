@@ -366,6 +366,11 @@ struct State_tmp{
         return money;
     }
 
+    void change_machine(const Pos& p, const bool bl){
+        assert(is_machine(p) != bl);
+        is_machines[p.idx()] = bl;
+    }
+
     vector<Pos> get_machines() const{
         vector<Pos> ret;
         ret.reserve(machine_count);
@@ -457,9 +462,7 @@ struct State_tmp{
 
     void dfs(const Pos& p, uint16_t& count, int& sum_val, float& sum_reserve_val, const bool is_root){
         assert(p.in_range());
-        ord[p.idx()] = count;
         count++;
-        int root_count = 0;
         if(is_veg(p)){
             sum_val += TP2V[t][p.idx()];
             is_vegs[p.idx()] = false;
@@ -472,12 +475,31 @@ struct State_tmp{
             if(!is_machine(pp)) continue;
             if(checked[pp.idx()] == check_num){
                 //後退辺
+                continue;
+            }
+            checked[pp.idx()] = check_num;
+            dfs(pp, count, sum_val, sum_reserve_val, false);
+        }
+    }
+
+    void dfs_kansetsu(const Pos& p, uint16_t& count, const bool is_root){
+        assert(p.in_range());
+        ord[p.idx()] = count;
+        count++;
+        int root_count = 0;
+
+        for(const auto& dir : DIRS4){
+            const Pos pp = p + dir;
+            if(!pp.in_range()) continue;
+            if(!is_machine(pp)) continue;
+            if(checked[pp.idx()] == check_num){
+                //後退辺
                 chmin(low[p.idx()], ord[pp.idx()]);
                 continue;
             }
             root_count++;
             checked[pp.idx()] = check_num;
-            dfs(pp, count, sum_val, sum_reserve_val, false);
+            dfs_kansetsu(pp, count, false);
             chmin(low[p.idx()], low[pp.idx()]);
             if(!is_root && ord[p.idx()] <= low[pp.idx()]){
                 is_kansetsu_[p.idx()] = true;
@@ -490,21 +512,30 @@ struct State_tmp{
         }
     }
 
+    void update_kansetsu(const Pos& root){
+        check_num += 2;
+        is_kansetsu_ = 0;
+        uint16_t count = ord_root;
+        dfs_kansetsu(root, count, true);
+        if(ord_root < N*N*2){
+            fill(all(low), 0xffff);
+            ord_root = 0xfff;
+        }
+        ord_root -= N*N*2;
+    }
+
     void do_turn_end(const vector<Pos>& machines){
         check_num += 2;
         reserve_money = 0;
         max_connect_count = 0;
 
-        is_kansetsu_ = 0;
-
         for(const auto& base_p : machines){
             if(checked[base_p.idx()] == check_num) continue;
             checked[base_p.idx()] = check_num;
-            uint16_t count = ord_root;
+            uint16_t count = 0;
             int sum_val = 0;
             float sum_reserve_val = 0;
             dfs(base_p, count, sum_val, sum_reserve_val, true);
-            count -= ord_root;
             money += count * sum_val;
             //Todo:center_countをかけるタイミングをちゃんと
             reserve_money += count * sum_reserve_val;
@@ -750,6 +781,9 @@ struct BeamSearcher{
                         action.kind = BUY;
                         action.to = to;
                     }else{
+                        after_state.change_machine(to, true);
+                        after_state.update_kansetsu(to);
+                        after_state.change_machine(to, false);
                         const auto evaluate = [&](const Pos& from){
                             if(from.manhattan(to) == 1) return -(float)INF;
                             const int t = after_state.turn();
