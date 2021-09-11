@@ -220,11 +220,9 @@ struct Event{
     int val;
 };
 
-vector<vector<int>> TP2V(T, vector<int>(N*N));
-vector<vector<int>> TP2S(T, vector<int>(N*N));
-// vector<vector<int>> TP2V_ruiseki(T+1, vector<int>(N*N));
-// vector<vector<int>> TP2NS(T+1, vector<int>(N*N));
-vector<vector<float>> TP2eval(T, vector<float>(N*N));
+array<array<int, N*N>, T> TP2V;
+array<array<int, N*N>, T> TP2S;
+array<array<float, N*N>, T> TP2eval;
 vector<vector<Pos>> T2P(T);
 vector<vector<Event>> events(T+1);
 
@@ -495,7 +493,7 @@ struct State_tmp{
     }
 };
 
-vector<vector<Pos>> before_pos(MAX_HOHABA, vector<Pos>(N*N));
+array<array<Pos, N*N>, MAX_HOHABA> before_pos;
 vector<float> dp(N*N), dp2(N*N);
 
 template<typename Eval, class CenterJudger>
@@ -823,6 +821,26 @@ struct BeamSearcher{
 void input(){
     int _; cin>>_>>_>>_;
     timer.start();
+    rep(i,TP2V.size()){
+        rep(j,TP2V[i].size()){
+            TP2V[i][j] = 0;
+        }
+    }
+    rep(i,TP2S.size()){
+        rep(j,TP2S[i].size()){
+            TP2S[i][j] = 0;
+        }
+    }
+    rep(i,TP2eval.size()){
+        rep(j,TP2eval[i].size()){
+            TP2V[i][j] = 0.0f;
+        }
+    }
+    rep(i,before_pos.size()){
+        rep(j,before_pos[i].size()){
+            before_pos[i][j] = {0};
+        }
+    }
     rep(y,N){
         rep(x,N){
             POSES_ALL.push_back({y,x});
