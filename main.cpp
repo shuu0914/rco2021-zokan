@@ -54,7 +54,7 @@ float GAMMA_END = 0.94306192f;
 float SUMI_WEIGHT = 0.76926073f;
 int HOHABA = 6;
 
-float MAIN_MONEY_WEIGHT = 1.75526066f;
+float MAIN_MONEY_WEIGHT = 1.82150687f;
 
 constexpr int MAX_HOHABA = 6;
 int BW = 10;
@@ -677,7 +677,7 @@ struct BeamSearcher{
                                 if(!exist) return 0.0f;
                                 //connectしていない場合は何歩目かによって価値が変わる
                                 //Todo:50試行ではevaluate()にのみWEIGHTをかけたほうが評価値が良かったので1000試行で確認
-                                ret += TP2V[t][pp.idx()] * (must_connect ? 1 : _t + 1) * MAIN_MONEY_WEIGHT;
+                                ret += TP2V[t][pp.idx()] * (must_connect ? 1 : _t + 1);
                             }else{
                                 //Todo:先読みターン数
                                 //Todo:提出時にはassert外すかNDEBUG
@@ -685,7 +685,7 @@ struct BeamSearcher{
                                 assert(must_connect);
                                 ret += TP2eval[t][pp.idx()];
                                 if(exist){
-                                    ret += TP2V[t][pp.idx()] * MAIN_MONEY_WEIGHT;
+                                    ret += TP2V[t][pp.idx()];
                                 }
                             }
                             return ret;
@@ -835,7 +835,7 @@ struct BeamSearcher{
             if(t == 700){
                 BW = 20;
             }else if(t == 800){
-                BW = 26;
+                BW = 25;
             }else if(t == 900){
                 BW = 32;
             }
