@@ -44,7 +44,7 @@ typedef uint16_t HASH_TYPE;
 
 int MAX_BUY_COUNT = 50;
 int NOMUST_CONNECT_THRESHOLD = 3;
-int START_SAKIYOMI = 200;
+int START_SAKIYOMI = 100;
 constexpr int HASH_STRIDE = 4;
 constexpr int HASH_POS_NUM = 8;
 constexpr int END_HASH_AREA = 1000;
