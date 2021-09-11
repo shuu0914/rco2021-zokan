@@ -495,6 +495,8 @@ struct State_tmp{
     }
 };
 
+vector<vector<Pos>> before_pos(MAX_HOHABA, vector<Pos>(N*N));
+
 template<typename Eval, class CenterJudger>
 struct BeamSearcher{
     using State = State_tmp<CenterJudger>;
@@ -611,7 +613,6 @@ struct BeamSearcher{
             }
             //Todo:正しい？
             const int HOHABA = MAX_HOHABA;
-            vector<vector<Pos>> before_pos(HOHABA, vector<Pos>(N*N));
             vector<float> vec_max_val;
             vector<vector<Pos>> vec_max_keiro;
             rep(_t, HOHABA){
