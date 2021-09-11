@@ -622,40 +622,39 @@ struct BeamSearcher{
                 Pos max_pos = {-1,-1};
                 vector<float> dp2(N*N,-INF);
                 for(const auto& p : POSES_ALL){
-                    if(before_state.is_machine(p)) continue;
-                    //Todo:取得済みかどうかのチェック
-                    //Todo:累積のほうが良いかも？
-                    const float val = [&](){
-                        //降ってきてるはずなのに存在しない → 取得済み
-                        float ret = 0;
-                        bool exist = TP2S[t][p.idx()] > before_state.turn() || before_state.is_veg(p);
-                        if(t < START_SAKIYOMI){
-                            if(!exist) return 0.0f;
-                            //connectしていない場合は何歩目かによって価値が変わる
-                            ret += TP2V[t][p.idx()] * (must_connect ? 1 : _t + 1);
-                        }else{
-                            //Todo:先読みターン数
-                            //Todo:提出時にはassert外すかNDEBUG
-                            //Todo:must_connectではないときも先読みしたい 3が降ってくる前において、その後隣に置くことで3*2点をしたい
-                            assert(must_connect);
-                            ret += TP2eval[t][p.idx()];
-                            if(exist){
-                                ret += TP2V[t][p.idx()];
+                    if(dp[p.idx()] == -INF) continue;
+                    for(const Pos& pp : POSES_EDGE_DIR[UDLR][p.idx()]){
+                        if(before_state.is_machine(pp)) continue;
+                        //Todo:取得済みかどうかのチェック
+                        //Todo:累積のほうが良いかも？
+                        const float val = [&](){
+                            //降ってきてるはずなのに存在しない → 取得済み
+                            float ret = 0;
+                            bool exist = TP2S[t][pp.idx()] > before_state.turn() || before_state.is_veg(pp);
+                            if(t < START_SAKIYOMI){
+                                if(!exist) return 0.0f;
+                                //connectしていない場合は何歩目かによって価値が変わる
+                                ret += TP2V[t][pp.idx()] * (must_connect ? 1 : _t + 1);
+                            }else{
+                                //Todo:先読みターン数
+                                //Todo:提出時にはassert外すかNDEBUG
+                                //Todo:must_connectではないときも先読みしたい 3が降ってくる前において、その後隣に置くことで3*2点をしたい
+                                assert(must_connect);
+                                ret += TP2eval[t][pp.idx()];
+                                if(exist){
+                                    ret += TP2V[t][pp.idx()];
+                                }
+                            }
+                            return ret;
+                        }() + dp[p.idx()];
+                        if(dp2[pp.idx()] < val){
+                            dp2[pp.idx()] = val;
+                            before_pos[_t][pp.idx()] = p;
+                            if(val > max_val){
+                                max_val = val;
+                                max_pos = pp;
                             }
                         }
-                        return ret;
-                    }();
-
-                    for(const Pos& pp : POSES_EDGE_DIR[UDLR][p.idx()]){
-                        if(dp2[p.idx()] < dp[pp.idx()] + val){
-                            dp2[p.idx()] = dp[pp.idx()] + val;
-                            before_pos[_t][p.idx()] = pp;
-                        }
-                    }
-
-                    if(dp2[p.idx()] > max_val){
-                        max_val = dp2[p.idx()];
-                        max_pos = p;
                     }
                 }
 
