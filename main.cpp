@@ -45,14 +45,16 @@ typedef uint16_t HASH_TYPE;
 int MAX_BUY_COUNT = 50;
 int NOMUST_CONNECT_THRESHOLD = 3;
 int START_SAKIYOMI = 100;
-constexpr int HASH_STRIDE = 4;
-constexpr int HASH_POS_NUM = 8;
-constexpr int END_HASH_AREA = 1000;
-constexpr float GAMMA_START = 0.0;
-constexpr float GAMMA_END = 1.0;
-constexpr float SUMI_WEIGHT = 0.8;
+int HASH_STRIDE = 4;
+int HASH_POS_NUM = 8;
 
-const int MAX_HOHABA = 6;
+int END_HASH_AREA = 1000;
+float GAMMA_START = 0.0;
+float GAMMA_END = 1.0;
+float SUMI_WEIGHT = 0.8;
+int HOHABA = 6;
+
+constexpr int MAX_HOHABA = 6;
 const int BW = 17;
 
 uint32_t xorshift(){
@@ -647,8 +649,6 @@ struct BeamSearcher{
                 fill(all(checked), check_num);
                 fill(all(dp), 0);
             }
-            //Todo:正しい？
-            const int HOHABA = MAX_HOHABA;
             vector<float> vec_max_val;
             vec_max_val.reserve(HOHABA);
             vector<vector<Pos>> vec_max_keiro;
@@ -670,7 +670,7 @@ struct BeamSearcher{
                         const float val_add = [&](){
                             //降ってきてるはずなのに存在しない → 取得済み
                             float ret = 0;
-                            bool exist = TP2S[t][pp.idx()] > before_state.turn() || before_state.is_veg(pp);
+                            const bool exist = TP2S[t][pp.idx()] > before_state.turn() || before_state.is_veg(pp);
                             if(!must_connect || before_state.turn() < START_SAKIYOMI){
                                 if(!exist) return 0.0f;
                                 //connectしていない場合は何歩目かによって価値が変わる
@@ -1071,8 +1071,17 @@ int main(int argc, char *argv[]){
     fast_io;
 
     if(argc >= 2){
-        NOMUST_CONNECT_THRESHOLD = stoi(argv[9]);
-        START_SAKIYOMI = stoi(argv[11]);
+        MAX_BUY_COUNT = stoi(argv[1]);
+        NOMUST_CONNECT_THRESHOLD = stoi(argv[2]);
+        START_SAKIYOMI = stoi(argv[3]);
+        HASH_STRIDE = stoi(argv[4]);
+        HASH_POS_NUM = stoi(argv[5]);
+
+        END_HASH_AREA = stoi(argv[6]);
+        GAMMA_START = stof(argv[7]);
+        GAMMA_END = stof(argv[8]);
+        SUMI_WEIGHT = stof(argv[9]);
+        HOHABA = stoi(argv[10]);
     }
 
     input();
