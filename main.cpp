@@ -230,7 +230,7 @@ vector<vector<Event>> events(T+1);
 
 int debug_final_money = 0;
 
-vector<uint16_t> checked(N*N,0);
+vector<uint16_t> checked(N*N,0), checked2(N*N,0);
 vector<uint16_t> ord(N*N), low(N*N,0xffff);
 uint16_t ord_root = (uint16_t)0 - N*N - 1;
 uint16_t check_num = 1;
@@ -603,11 +603,12 @@ struct BeamSearcher{
         }
 
         const auto func = [&](const int UDLR, const bool must_connect = true){
-            vector<float> dp(N*N);
+            vector<float> dp(N*N), dp2(N*N);
+            fill(all(checked), check_num);
             if(must_connect){
                 for(const auto& p : POSES_ALL){
                     if(!before_state.is_machine(p)){
-                        dp[p.idx()] = -INF;
+                        checked[p.idx()] = check_num-2;
                     }
                 }
             }
@@ -616,14 +617,15 @@ struct BeamSearcher{
             vector<float> vec_max_val;
             vector<vector<Pos>> vec_max_keiro;
             rep(_t, HOHABA){
+                const auto before_check_num = check_num;
+                check_num += 2;
                 //Todo:あってる？
                 const int t = before_state.turn() + _t;
                 if(t >= T) break;
                 float max_val = -1;
                 Pos max_pos = {-1,-1};
-                vector<float> dp2(N*N,-INF);
                 for(const auto& p : POSES_ALL){
-                    if(dp[p.idx()] == -INF) continue;
+                    if(checked[p.idx()] != before_check_num) continue;
                     for(const Pos& pp : POSES_EDGE_DIR[UDLR][p.idx()]){
                         if(before_state.is_machine(pp)) continue;
                         //Todo:取得済みかどうかのチェック
@@ -648,8 +650,9 @@ struct BeamSearcher{
                             }
                             return ret;
                         }() + dp[p.idx()];
-                        if(dp2[pp.idx()] < val){
+                        if(checked2[pp.idx()] != before_check_num || dp2[pp.idx()] < val){
                             dp2[pp.idx()] = val;
+                            checked2[pp.idx()] = check_num;
                             before_pos[_t][pp.idx()] = p;
                             if(val > max_val){
                                 max_val = val;
@@ -659,7 +662,8 @@ struct BeamSearcher{
                     }
                 }
 
-                dp = std::move(dp2);
+                swap(dp, dp2);
+                swap(checked, checked2);
 
                 if(max_val == -1.0f) continue;
 
