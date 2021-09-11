@@ -54,6 +54,8 @@ float GAMMA_END = 0.94306192f;
 float SUMI_WEIGHT = 0.76926073f;
 int HOHABA = 6;
 
+float MAIN_MONEY_WEIGHT = 1.2f;
+
 constexpr int MAX_HOHABA = 6;
 int BW = 10;
 
@@ -493,7 +495,7 @@ struct State_tmp{
     float evaluate() const{
         float eval = 0;
         eval += min(count(), MAX_BUY_COUNT) * (1e9 / MAX_BUY_COUNT);
-        eval += money;
+        eval += money * MAIN_MONEY_WEIGHT;
         eval += reserve_money;
         return eval;
     }
@@ -674,7 +676,8 @@ struct BeamSearcher{
                             if(!must_connect || before_state.turn() < START_SAKIYOMI){
                                 if(!exist) return 0.0f;
                                 //connectしていない場合は何歩目かによって価値が変わる
-                                ret += TP2V[t][pp.idx()] * (must_connect ? 1 : _t + 1);
+                                //Todo:50試行ではevaluate()にのみWEIGHTをかけたほうが評価値が良かったので1000試行で確認
+                                ret += TP2V[t][pp.idx()] * (must_connect ? 1 : _t + 1) * MAIN_MONEY_WEIGHT;
                             }else{
                                 //Todo:先読みターン数
                                 //Todo:提出時にはassert外すかNDEBUG
@@ -682,7 +685,7 @@ struct BeamSearcher{
                                 assert(must_connect);
                                 ret += TP2eval[t][pp.idx()];
                                 if(exist){
-                                    ret += TP2V[t][pp.idx()];
+                                    ret += TP2V[t][pp.idx()] * MAIN_MONEY_WEIGHT;
                                 }
                             }
                             return ret;
@@ -1078,7 +1081,7 @@ int main(int argc, char *argv[]){
     fast_io;
 
     if(argc >= 2){
-        MAX_BUY_COUNT = stoi(argv[1]);
+        // MAX_BUY_COUNT = stoi(argv[1]);
         // NOMUST_CONNECT_THRESHOLD = stoi(argv[2]);
         // START_SAKIYOMI = stoi(argv[1]);
         // HASH_STRIDE = stoi(argv[4]);
@@ -1089,6 +1092,7 @@ int main(int argc, char *argv[]){
         // GAMMA_END = stof(argv[2]);
         // SUMI_WEIGHT = stof(argv[1]);
         // HOHABA = stoi(argv[10]);
+        MAIN_MONEY_WEIGHT = stof(argv[1]);
     }
 
     input();
