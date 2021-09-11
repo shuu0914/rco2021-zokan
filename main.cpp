@@ -162,101 +162,48 @@ constexpr Dir DIRS4[4] = {U, D, L, R};
 
 constexpr int N = 16, M = 5000, T = 1000;
 struct Pos{
-    int y,x;
+    static array<array<int,N*N>,N*N> manhattan_vec;
+    int idx_;
     Pos(){}
 
+    Pos(int idx)
+    : idx_(idx){}
+
     Pos(int inp_y, int inp_x)
-    : y(inp_y), x(inp_x) {}
-
-    void set_y(const int y_){
-        y = y_;
-    }
-
-    void set_x(const int x_){
-        x = x_;
-    }
+    : idx_(inp_y*N + inp_x){}
 
     int manhattan(const Pos& p) const{
-        return abs(p.y - y) + abs(p.x - x);
-    }
-
-    int chebyshev(const Pos& p) const{
-        return max(abs(p.x - x), abs(p.y - y));
-    }
-
-    Pos operator+ (Dir d) const{
-        return {y + d.y, x + d.x};
-    }
-
-    Pos operator+ (const Pos& p) const{
-        return {y + p.y, x + p.x};
-    }
-
-    void operator+= (Dir d){
-        y += d.y;
-        x += d.x;
-    }
-
-    Dir operator- (const Pos& from) const{
-        if(y == from.y){
-            if(from.x + 1 == x){
-                return R;
-            }else if(from.x - 1 == x){
-                return L;
-            }
-        }else if(x == from.x){
-            if(from.y + 1 == y){
-                return D;
-            }else if(from.y - 1 == y){
-                return U;
-            }
-        }
-        throw invalid_argument("Posに-するPosが適切ではありません");
-    }
-
-    void operator-= (Dir d){
-        y -= d.y;
-        x -= d.x;
+        return manhattan_vec[idx()][p.idx()];
     }
 
     bool operator==(const Pos& p) const{
-        return x == p.x && y == p.y;
+        return idx() == p.idx();
     }
 
     bool operator!=(const Pos& p) const{
-        return x != p.x || y != p.y;
+        return idx() != p.idx();
     }
 
     //mapに突っ込めるようにするために定義
     bool operator<(const Pos& p) const{
-        if(y != p.y){
-            return y < p.y;
-        }
-        return x < p.x;
-    }
-
-    bool in_range() const{
-        return x >= 0 && x < N && y >= 0 && y < N;
-    }
-
-    string to_string() const{
-        return "(" + std::to_string(x) + "," + std::to_string(y) + ")";
+        return idx() < p.idx();
     }
 
     friend ostream& operator<<(ostream& os, const Pos& p){
-        os << "(" << p.y << "," << p.x << ")";
+        os << "(" << p.idx()/N << "," << p.idx()%N << ")";
         return os;
     }
 
     string to_answer() const{
-        return std::to_string(y) + " " + std::to_string(x);
+        return std::to_string(idx()/N) + " " + std::to_string(idx()%N);
     }
 
-    int idx() const{
-        assert(y != -1);
-        return y * N + x;
+    inline int idx() const{
+        return idx_;
     }
 };
+
+array<array<int,N*N>,N*N> Pos::manhattan_vec;
 
 int idx(const int y, const int x){
     return y * N + x;
@@ -316,6 +263,7 @@ ostream& operator<<(ostream& os, const vector<Action>& actions){
 
 vector<Pos> POSES_ALL;
 vector<vector<Pos>> POSES_EDGE(N*N);
+vector<vector<vector<Pos>>> POSES_EDGE_DIR(4, vector<vector<Pos>>(N*N));
 
 template<class CenterJudger>
 struct State_tmp{
@@ -460,7 +408,7 @@ struct State_tmp{
     }
 
     void dfs(const Pos& p, uint16_t& count, int& sum_val, float& sum_reserve_val, const bool is_root){
-        assert(p.in_range());
+        // assert(p.in_range());
         ord[p.idx()] = count;
         count++;
         int root_count = 0;
@@ -525,7 +473,7 @@ struct State_tmp{
         //Todo:評価値悪かったらStart処理はする必要ない
         for(const auto& event : events[t]){
             const Pos& p = event.p;
-            assert(p.in_range());
+            // assert(p.in_range());
             if(event.is_S){
                 is_vegs[p.idx()] = true;
             }else{
@@ -623,9 +571,9 @@ struct BeamSearcher{
         const auto before_machines = before_state.get_machines();
 
         if(before_state.count() == 0 || (before_state.count() == 1 && !before_state.can_buy())){
-            Pos from = {-1,-1};
+            Pos from = {N*N};
             int max_val = 0;
-            Pos to = {-1,-1};
+            Pos to = {N*N};
             for(const Pos& p : POSES_ALL){
                 if(before_state.is_machine(p)){
                     from = p;
@@ -636,10 +584,10 @@ struct BeamSearcher{
                     to = p;
                 }
             }
-            assert(to.y != -1);
+            assert(to.idx() != N*N);
 
             Action action;
-            if(from.y == -1){
+            if(from.idx() == N*N){
                 action.kind = BUY;
                 action.to = to;
             }else{
@@ -652,7 +600,7 @@ struct BeamSearcher{
             return;
         }
 
-        const auto func = [&](const auto UD, const auto LR, const bool must_connect = true){
+        const auto func = [&](const int UDLR, const bool must_connect = true){
             vector<float> dp(N*N);
             if(must_connect){
                 for(const auto& p : POSES_ALL){
@@ -698,16 +646,11 @@ struct BeamSearcher{
                         return ret;
                     }();
 
-                    const Pos&& pp1 = p + UD;
-                    if(pp1.in_range() && dp2[p.idx()] < dp[pp1.idx()] + val){
-                        dp2[p.idx()] = dp[pp1.idx()] + val;
-                        before_pos[_t][p.idx()] = pp1;
-                    }
-
-                    const Pos&& pp2 = p + LR;
-                    if(pp2.in_range() && dp2[p.idx()] < dp[pp2.idx()] + val){
-                        dp2[p.idx()] = dp[pp2.idx()] + val;
-                        before_pos[_t][p.idx()] = pp2;
+                    for(const Pos& pp : POSES_EDGE_DIR[UDLR][p.idx()]){
+                        if(dp2[p.idx()] < dp[pp.idx()] + val){
+                            dp2[p.idx()] = dp[pp.idx()] + val;
+                            before_pos[_t][p.idx()] = pp;
+                        }
                     }
 
                     if(dp2[p.idx()] > max_val){
@@ -755,7 +698,7 @@ struct BeamSearcher{
                             const int t = after_state.turn();
                             return -(TP2eval[t][from.idx()] + after_state.get_veg_value(from));
                         };
-                        Pos best_from = {-1,-1};
+                        Pos best_from = {N*N};
                         float best_eval = -INF;
                         //must_connectでないときでも、before_machinesの中から関節点ではないものを1つずつ消していくのでこれでよい
                         //Todo:序盤は関節点を削除したほうが評価値が向上する可能性
@@ -768,7 +711,7 @@ struct BeamSearcher{
                                 best_from = from;
                             }
                         }
-                        if(best_from.y == -1){
+                        if(best_from.idx() == N*N){
                             break;
                         }
                         action.kind = MOVE;
@@ -790,16 +733,12 @@ struct BeamSearcher{
             }
         };
 
-        for(const auto UD : {U,D}){
-            for(const auto LR : {L,R}){
-                func(UD, LR);
-            }
+        rep(i,4){
+            func(i);
         }
         if(before_state.count() <= NOMUST_CONNECT_THRESHOLD){
-            for(const auto UD : {U,D}){
-                for(const auto LR : {L,R}){
-                    func(UD, LR, false);
-                }
+            rep(i,4){
+                func(i,false);
             }
         }
     }
@@ -933,15 +872,34 @@ void input(){
         rep(x,N){
             POSES_ALL.push_back({y,x});
             const Pos&& p = {y,x};
-            for(const Dir& dir : DIRS4){
-                const Pos&& pp = p + dir;
-                if(!pp.in_range()) continue;
-                POSES_EDGE[p.idx()].emplace_back(pp);
+            for(int dy = -1; dy <= 1; dy++){
+                for(int dx = -1; dx <= 1; dx++){
+                    if(abs(dy)+abs(dx) != 1) continue;
+                    if(y+dy>=0 && y+dy<N && x+dx>=0 && x+dx<N){
+                        const Pos&& pp = {y+dy, x+dx};
+                        POSES_EDGE[p.idx()].emplace_back(pp);
+                        if(dy != 0){
+                            POSES_EDGE_DIR[((dy+1)>>1)&1][p.idx()].emplace_back(pp);
+                            POSES_EDGE_DIR[(((dy+1)>>1)&1)+2][p.idx()].emplace_back(pp);
+                        }else{
+                            POSES_EDGE_DIR[dx+1][p.idx()].emplace_back(pp);
+                            POSES_EDGE_DIR[dx+1+1][p.idx()].emplace_back(pp);
+                        }
+                    }
+                }
             }
         }
     }
     POSES_ALL.shrink_to_fit();
     POSES_EDGE.shrink_to_fit();
+    POSES_EDGE_DIR.shrink_to_fit();
+
+    for(const Pos& p : POSES_ALL){
+        for(const Pos& pp : POSES_ALL){
+            const int diff = max(p.idx(), pp.idx()) - min(p.idx(), pp.idx());
+            Pos::manhattan_vec[p.idx()][pp.idx()] = diff / N + diff % N;
+        }
+    }
 }
 
 template<class CenterJudger>
@@ -959,24 +917,6 @@ pair<vector<Action>, int> solve(){
 
 struct Y14{
 
-};
-
-struct X14{
-    static bool is_center(const Pos& p){
-        return p.x == N/4 || p.x == N*3/4;
-    }
-};
-
-struct Y12{
-    static bool is_center(const Pos& p){
-        return p.y == N/3 || p.y == N*2/3;
-    }
-};
-
-struct X12{
-    static bool is_center(const Pos& p){
-        return p.x == N/3 || p.x == N*2/3;
-    }
 };
 
 int main(int argc, char *argv[]){
