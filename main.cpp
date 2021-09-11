@@ -54,7 +54,7 @@ float GAMMA_END = 0.94306192f;
 float SUMI_WEIGHT = 0.76926073f;
 int HOHABA = 6;
 
-float MAIN_MONEY_WEIGHT = 1.2f;
+float MAIN_MONEY_WEIGHT = 1.75526066f;
 
 constexpr int MAX_HOHABA = 6;
 int BW = 10;
