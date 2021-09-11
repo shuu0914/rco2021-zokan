@@ -49,8 +49,8 @@ int HASH_STRIDE = 4;
 int HASH_POS_NUM = 8;
 
 int END_HASH_AREA = 1000;
-float GAMMA_START = 0.3;
-float GAMMA_END = 0.95;
+float GAMMA_START = 0.868f;
+float GAMMA_END = 0.943f;
 float SUMI_WEIGHT = 0.8;
 int HOHABA = 6;
 
@@ -1071,17 +1071,17 @@ int main(int argc, char *argv[]){
     fast_io;
 
     if(argc >= 2){
-        MAX_BUY_COUNT = stoi(argv[1]);
-        NOMUST_CONNECT_THRESHOLD = stoi(argv[2]);
-        START_SAKIYOMI = stoi(argv[3]);
-        HASH_STRIDE = stoi(argv[4]);
-        HASH_POS_NUM = stoi(argv[5]);
+        // MAX_BUY_COUNT = stoi(argv[1]);
+        // NOMUST_CONNECT_THRESHOLD = stoi(argv[2]);
+        // START_SAKIYOMI = stoi(argv[3]);
+        // HASH_STRIDE = stoi(argv[4]);
+        // HASH_POS_NUM = stoi(argv[5]);
 
-        END_HASH_AREA = stoi(argv[6]);
-        GAMMA_START = stof(argv[7]);
-        GAMMA_END = stof(argv[8]);
-        SUMI_WEIGHT = stof(argv[9]);
-        HOHABA = stoi(argv[10]);
+        // END_HASH_AREA = stoi(argv[6]);
+        GAMMA_START = stof(argv[1]);
+        GAMMA_END = stof(argv[2]);
+        // SUMI_WEIGHT = stof(argv[9]);
+        // HOHABA = stoi(argv[10]);
     }
 
     input();
