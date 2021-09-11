@@ -275,7 +275,6 @@ struct State_tmp{
     bitset<N*N> is_kansetsu_ = 0;
     float reserve_money = 0;
     int max_connect_count = 0;
-    Pos last_machine = 0;
 
     State_tmp(){
         for(const auto& p : T2P[0]){
@@ -326,19 +325,12 @@ struct State_tmp{
     vector<Pos> get_machines() const{
         vector<Pos> ret;
         ret.reserve(machine_count);
-        check_num += 2;
-        queue<Pos> q;
-        q.emplace(last_machine);
-        checked[last_machine.idx()] = check_num;
-        while(q.size() > 0){
-            Pos p = q.front(); q.pop();
-            for(const auto& pp : POSES_EDGE[p.idx()]){
-                if(!is_machine(pp)) continue;
-                if(checked[pp.idx()] == check_num) continue;
-                checked[pp.idx()] = check_num;
-                q.emplace(pp);
+        rep(y,N){
+            rep(x,N){
+                Pos&& p = {y,x};
+                if(!is_machine(p)) continue;
+                ret.emplace_back(std::forward<Pos>(p));
             }
-            ret.emplace_back(std::move(p));
         }
         return ret;
     }
@@ -391,11 +383,9 @@ struct State_tmp{
             money -= get_cost();
             machine_count++;
             is_machines[action.to.idx()] = true;
-            last_machine = action.to;
         }else if(action.kind == MOVE){
             is_machines[action.from.idx()] = false;
             is_machines[action.to.idx()] = true;
-            last_machine = action.to;
         }else{
             //PASS
         }
@@ -408,11 +398,9 @@ struct State_tmp{
             money -= get_cost();
             machine_count++;
             is_machines[action.to.idx()] = true;
-            last_machine = action.to;
         }else if(action.kind == MOVE){
             is_machines[action.from.idx()] = false;
             is_machines[action.to.idx()] = true;
-            last_machine = action.to;
         }else{
             //PASS
         }
