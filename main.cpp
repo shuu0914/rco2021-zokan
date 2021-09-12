@@ -47,9 +47,7 @@ constexpr int NOMUST_CONNECT_THRESHOLD = 4;
 constexpr int START_SAKIYOMI = 259;
 constexpr int HASH_RANGE = 4;
 constexpr int HASH_STRIDE = 2;
-constexpr int HASH_POS_NUM = 8;
 
-constexpr int END_HASH_AREA = 1000;
 constexpr float GAMMA_START = 0.86828118f;
 constexpr float GAMMA_END = 0.94306192f;
 constexpr float GAMMA_LOW_START = 0.68775480f;
@@ -510,29 +508,22 @@ struct State_tmp{
 
     HASH_TYPE hash() const{
         HASH_TYPE ret = 0;
-        if(t < END_HASH_AREA){
-            for(int y_s = 0; y_s + HASH_RANGE <= N; y_s += HASH_STRIDE){
-                for(int x_s = 0; x_s + HASH_RANGE <= N; x_s += HASH_STRIDE){
-                    ret *= 2;
-                    bool exist = false;
-                    for(int y = y_s; y < y_s + HASH_RANGE; ++y){
-                        for(int x = x_s; x < x_s + HASH_RANGE; ++x){
-                            if(is_machines[idx(y,x)]){
-                                exist = true;
-                                break;
-                            }
-                        }
-                        if(exist) break;
-                    }
-                    if(exist){
-                        ret += 1;
-                    }
-                }
-            }
-        }else{
-            for(const auto& p : POSES_HASH){
+        for(int y_s = 0; y_s + HASH_RANGE <= N; y_s += HASH_STRIDE){
+            for(int x_s = 0; x_s + HASH_RANGE <= N; x_s += HASH_STRIDE){
                 ret *= 2;
-                ret += is_machine(p.idx());
+                bool exist = false;
+                for(int y = y_s; y < y_s + HASH_RANGE; ++y){
+                    for(int x = x_s; x < x_s + HASH_RANGE; ++x){
+                        if(is_machines[idx(y,x)]){
+                            exist = true;
+                            break;
+                        }
+                    }
+                    if(exist) break;
+                }
+                if(exist){
+                    ret += 1;
+                }
             }
         }
         return ret;
@@ -1099,14 +1090,6 @@ void input(){
             event.is_S = false;
             events[e].push_back(event);
         }
-    }
-
-    partial_sort(V.begin(), V.begin() + HASH_POS_NUM, V.end(), [](const Veg& l, const Veg& r){
-        return l.v > r.v;
-    });
-    POSES_HASH.reserve(HASH_POS_NUM);
-    rep(i,HASH_POS_NUM){
-        POSES_HASH.emplace_back(V[i].r, V[i].c);
     }
 
     for(const auto& p : POSES_ALL){
