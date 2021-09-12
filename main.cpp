@@ -42,7 +42,7 @@ typedef pair<int, int> Pii;
 typedef pair<ll, ll> Pll;
 typedef uint64_t HASH_TYPE;
 
-int MAX_BUY_COUNT = 52;
+constexpr int MAX_BUY_COUNT = 52;
 int NOMUST_CONNECT_THRESHOLD = 3;
 int START_SAKIYOMI = 259;
 int HASH_RANGE = 4;
@@ -242,6 +242,7 @@ array<array<float, N*N>, T> TP2eval;
 array<array<float, N*N>, T> TP2eval_low;
 vector<vector<Pos>> T2P(T);
 vector<vector<Event>> events(T+1);
+array<int, MAX_BUY_COUNT * 2> ruiseki_cost; 
 
 int debug_final_money = 0;
 
@@ -501,7 +502,7 @@ struct State_tmp{
 
     float evaluate() const{
         float eval = 0;
-        eval += min(count(), MAX_BUY_COUNT) * (1e9 / MAX_BUY_COUNT);
+        eval += ruiseki_cost[count()] * (MAIN_MONEY_WEIGHT + 0.1f);
         eval += money * MAIN_MONEY_WEIGHT;
         eval += reserve_money;
         return eval;
@@ -988,6 +989,13 @@ void input(){
     rep(i,TP2eval_low.size()){
         rep(j,TP2eval_low[i].size()){
             TP2eval_low[i][j] = 0.0f;
+        }
+    }
+    {
+        int sum = 0;
+        rep(i,MAX_BUY_COUNT * 2 - 2){
+            sum += i * i * i;
+            ruiseki_cost[i] = sum;
         }
     }
     rep(UDLR,4){
