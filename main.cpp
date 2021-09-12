@@ -722,7 +722,7 @@ struct BeamSearcher{
                                 checked2[pp.idx()] = check_num;
                                 before_pos[_t][pp.idx()] = p;
                             }
-                            if((_t == 0 ? val_low : val) > max_val && val_add > 0){
+                            if((_t == 0 ? val_low : val) > max_val && (val_add > 0 || must_connect)){
                                 max_val = (_t == 0 ? val_low : val);
                                 max_pos = pp;
                                 max_UDLR = UDLR;
