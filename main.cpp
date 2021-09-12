@@ -44,7 +44,6 @@ typedef uint64_t HASH_TYPE;
 
 constexpr int MAX_BUY_COUNT = 52;
 constexpr int NOMUST_CONNECT_THRESHOLD = 3;
-constexpr int START_SAKIYOMI = 0;
 constexpr int HASH_RANGE = 4;
 constexpr int HASH_STRIDE = 2;
 
@@ -431,7 +430,7 @@ struct State{
             is_vegs[p.idx()] = false;
         }
 
-        sum_reserve_val += (turn() >= START_SAKIYOMI ? TP2eval[t][p.idx()] : 0);
+        sum_reserve_val += TP2eval[t][p.idx()];
         for(const auto& pp : POSES_EDGE[p.idx()]){
             if(!is_machine(pp)) continue;
             if(checked[pp.idx()] == check_num){
@@ -680,7 +679,7 @@ struct BeamSearcher{
                                 //降ってきてるはずなのに存在しない → 取得済み
                                 float ret = 0;
                                 const bool exist = TP2S[t][pp.idx()] > before_state.turn() || before_state.is_veg(pp);
-                                if(!must_connect || before_state.turn() < START_SAKIYOMI){
+                                if(!must_connect){
                                     if(!exist) return 0.0f;
                                     //connectしていない場合は何歩目かによって価値が変わる
                                     //Todo:50試行ではevaluate()にのみWEIGHTをかけたほうが評価値が良かったので1000試行で確認
@@ -954,7 +953,6 @@ struct BeamSearcher{
 
 void input(){
     int _; cin>>_>>_>>_;
-    timer.start();
     rep(i,N*N){
         POSES_ALL[i] = {i};
     }
@@ -1133,7 +1131,6 @@ pair<vector<Action>, int> solve(){
     first_state_.money = 1;
     BeamSearcher<float> bs_er(first_state_);
     auto&& ans = bs_er.solve();
-    cerr<<timer.ms()<<"[ms]"<<endl;
     const int final_money = debug_final_money;
     cerr<<"final money:"<<final_money<<endl;
     //Todo: このreturnは不要なら消す
@@ -1142,6 +1139,7 @@ pair<vector<Action>, int> solve(){
 
 int main(int argc, char *argv[]){
     fast_io;
+    timer.start();
 
     if(argc >= 2){
         // MAX_BUY_COUNT = stoi(argv[1]);
@@ -1165,6 +1163,7 @@ int main(int argc, char *argv[]){
 
     const auto& pa = solve();
     cout<<pa.first<<endl;
+    cerr<<timer.ms()<<"[ms]"<<endl;
     cerr<<"score:"<<pa.second*50<<endl;
     return 0;
 }
