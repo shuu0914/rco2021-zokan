@@ -51,10 +51,13 @@ int HASH_POS_NUM = 8;
 int END_HASH_AREA = 1000;
 float GAMMA_START = 0.86828118f;
 float GAMMA_END = 0.94306192f;
+float GAMMA_LOW_START = 0.68775480f;
+float GAMMA_LOW_END = 0.88487835f;
 float SUMI_WEIGHT = 0.76926073f;
 int HOHABA = 6;
 
 float MAIN_MONEY_WEIGHT = 1.82150687f;
+float GIRIGIRI_WEIGHT = 1.2f;
 
 constexpr int MAX_HOHABA = 6;
 int BW = 10;
@@ -235,6 +238,7 @@ array<array<int, N*N>, T> TP2V;
 array<array<int, N*N>, T> TP2S;
 array<array<int, N*N>, T> TP2E;
 array<array<float, N*N>, T> TP2eval;
+array<array<float, N*N>, T> TP2eval_low;
 vector<vector<Pos>> T2P(T);
 vector<vector<Event>> events(T+1);
 
@@ -670,6 +674,7 @@ struct BeamSearcher{
                         if(before_state.is_machine(pp)) continue;
                         //Todo:取得済みかどうかのチェック
                         //Todo:累積のほうが良いかも？
+                        float val_low = 0;
                         const float val_add = [&](){
                             //降ってきてるはずなのに存在しない → 取得済み
                             float ret = 0;
@@ -679,28 +684,34 @@ struct BeamSearcher{
                                 //connectしていない場合は何歩目かによって価値が変わる
                                 //Todo:50試行ではevaluate()にのみWEIGHTをかけたほうが評価値が良かったので1000試行で確認
                                 //締め切りギリギリだったらちょっと"dpの評価を"高くする
-                                ret += TP2V[t][pp.idx()] * (must_connect ? 1 : _t + 1) * (TP2E[t][pp.idx()] - t <= 2 ? 1.2f : 1.0f);
+                                const float val = TP2V[t][pp.idx()] * (must_connect ? 1 : _t + 1) * (TP2E[t][pp.idx()] - t <= 2 ? GIRIGIRI_WEIGHT : 1.0f);
+                                ret += val;
+                                val_low += val;
                             }else{
                                 //Todo:先読みターン数
                                 //Todo:提出時にはassert外すかNDEBUG
                                 //Todo:must_connectではないときも先読みしたい 3が降ってくる前において、その後隣に置くことで3*2点をしたい
                                 assert(must_connect);
                                 ret += TP2eval[t][pp.idx()];
+                                val_low += TP2eval_low[t][pp.idx()];
                                 if(exist){
-                                    ret += TP2V[t][pp.idx()] * (TP2E[t][pp.idx()] - t <= 2 ? 1.2f : 1.0f);
+                                    const float val = TP2V[t][pp.idx()] * (TP2E[t][pp.idx()] - t <= 2 ? GIRIGIRI_WEIGHT : 1.0f);
+                                    ret += val;
+                                    val_low += val;
                                 }
                             }
                             return ret;
                         }();
                         const float val = val_add + dp[p.idx()];
+                        val_low += dp[p.idx()];
                         if(checked2[pp.idx()] != before_check_num || dp2[pp.idx()] < val){
                             dp2[pp.idx()] = val;
                             checked2[pp.idx()] = check_num;
                             before_pos[_t][pp.idx()] = p;
-                            if(val > max_val && val_add > 0){
-                                max_val = val;
-                                max_pos = pp;
-                            }
+                        }
+                        if((_t == 0 ? val_low : val) > max_val && val_add > 0){
+                            max_val = (_t == 0 ? val_low : val);
+                            max_pos = pp;
                         }
                     }
                 }
@@ -945,7 +956,12 @@ void input(){
     }
     rep(i,TP2eval.size()){
         rep(j,TP2eval[i].size()){
-            TP2V[i][j] = 0.0f;
+            TP2eval[i][j] = 0.0f;
+        }
+    }
+    rep(i,TP2eval_low.size()){
+        rep(j,TP2eval_low[i].size()){
+            TP2eval_low[i][j] = 0.0f;
         }
     }
     rep(i,before_pos.size()){
@@ -981,10 +997,12 @@ void input(){
     // rep(t,T+1){
     //     fill(all(TP2NS[t]),INF);
     // }
-    vector<float> gammas(T);
+    vector<float> gammas(T), gammas_low(T);
     rep(t,T){
         const float gamma = GAMMA_START + (GAMMA_END - GAMMA_START) * t / T;
         gammas[t] = gamma;
+        const float gamma_low = GAMMA_LOW_START + (GAMMA_LOW_END - GAMMA_LOW_START) * t / T;
+        gammas_low[t] = gamma_low;
     }
     rep(i,M){
         int r,c,s,e,v;cin>>r>>c>>s>>e>>v;
@@ -1000,6 +1018,7 @@ void input(){
         if(s-1 >= 0){
             const bool is_sumi = r==0 || r==N-1 || c==0 || c==N-1;
             TP2eval[s-1][idx(r,c)] += v * gammas[s-1] * (is_sumi ? SUMI_WEIGHT : 1.0f);
+            TP2eval_low[s-1][idx(r,c)] += v * gammas_low[s-1] * (is_sumi ? SUMI_WEIGHT : 1.0f);
         }
         // constexpr float ALPHA = 0;
         // if(e-2 >= 0){
@@ -1035,6 +1054,7 @@ void input(){
     for(const auto& p : POSES_ALL){
         REP(t,T-1){
             TP2eval[t][p.idx()] += TP2eval[t+1][p.idx()] * gammas[t];
+            TP2eval_low[t][p.idx()] += TP2eval_low[t+1][p.idx()] * gammas_low[t];
         }
     }
     // rep(idx,N*N){
@@ -1100,7 +1120,10 @@ int main(int argc, char *argv[]){
         // GAMMA_END = stof(argv[2]);
         // SUMI_WEIGHT = stof(argv[1]);
         // HOHABA = stoi(argv[10]);
-        MAIN_MONEY_WEIGHT = stof(argv[1]);
+        // MAIN_MONEY_WEIGHT = stof(argv[1]);
+        // GAMMA_LOW_START = stof(argv[1]);
+        // GAMMA_LOW_END = stof(argv[2]);
+        GIRIGIRI_WEIGHT = stof(argv[1]);
     }
 
     input();
