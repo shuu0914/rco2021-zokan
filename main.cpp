@@ -45,6 +45,7 @@ typedef uint64_t HASH_TYPE;
 int MAX_BUY_COUNT = 52;
 int NOMUST_CONNECT_THRESHOLD = 3;
 int START_SAKIYOMI = 259;
+int HASH_RANGE = 4;
 int HASH_STRIDE = 2;
 int HASH_POS_NUM = 8;
 
@@ -507,15 +508,14 @@ struct State_tmp{
     }
 
     HASH_TYPE hash() const{
-        assert(N%HASH_STRIDE == 0);
         HASH_TYPE ret = 0;
         if(t < END_HASH_AREA){
-            for(int y_s = 0; y_s < N; y_s += HASH_STRIDE){
-                for(int x_s = 0; x_s < N; x_s += HASH_STRIDE){
+            for(int y_s = 0; y_s + HASH_RANGE <= N; y_s += HASH_STRIDE){
+                for(int x_s = 0; x_s + HASH_RANGE <= N; x_s += HASH_STRIDE){
                     ret *= 2;
                     bool exist = false;
-                    for(int y = y_s; y < y_s + HASH_STRIDE; ++y){
-                        for(int x = x_s; x < x_s + HASH_STRIDE; ++x){
+                    for(int y = y_s; y < y_s + HASH_RANGE; ++y){
+                        for(int x = x_s; x < x_s + HASH_RANGE; ++x){
                             if(is_machines[idx(y,x)]){
                                 exist = true;
                                 break;
