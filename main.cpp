@@ -60,7 +60,7 @@ float MAIN_MONEY_WEIGHT = 1.82150687f;
 float GIRIGIRI_WEIGHT = 1.52897825f;
 
 constexpr int MAX_HOHABA = 6;
-int BW = 10 * 2;
+int BW = 15 * 2;
 
 uint32_t xorshift(){
     static uint32_t x = 123456789;
@@ -755,6 +755,7 @@ struct BeamSearcher{
             //Todo:複数通り
             rep(i, vec_max_keiro.size()){
                 const auto& keiro = vec_max_keiro[i];
+                auto machines = before_machines;
 
                 vector<Action> actions;
                 actions.reserve(keiro.size());
@@ -765,6 +766,7 @@ struct BeamSearcher{
                     if(after_state.count() < MAX_BUY_COUNT && after_state.can_buy()){
                         action.kind = BUY;
                         action.to = to;
+                        machines.emplace_back(to);
                     }else{
                         const auto evaluate = [&](const Pos& from){
                             if(from.manhattan(to) == 1) return -(float)INF;
@@ -790,13 +792,15 @@ struct BeamSearcher{
                         action.kind = MOVE;
                         action.from = best_from;
                         action.to = to;
+                        machines.erase(find(all(machines), action.from));
+                        machines.emplace_back(action.to);
                     }
 
                     // cerr<<action.kind<<" "<<action.from<<" "<<action.to<<" "<<keiro.size()<<" "<<vec_bfs.size()<<endl;
                     // assert(before_state.can_action(action));
                     actions.emplace_back(action);
                     assert(after_state.can_action(action));
-                    after_state.do_action(action);
+                    after_state.do_action(action, machines);
                     //Todo:2手以上を突っ込む方法
                     // assert(HOHABA == 1);
                     //Todo:breakしない
