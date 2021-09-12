@@ -770,6 +770,7 @@ struct BeamSearcher{
                         machines.emplace_back(to);
                     }else{
                         const auto evaluate = [&](const Pos& from){
+                            //この条件満たしていても取り除ける場合があるけど、それ考慮しても評価値変わらなかった(むしろ下がった)
                             if(from.manhattan(to) == 1) return -(float)INF;
                             const int t = after_state.turn();
                             return -(TP2eval[t][from.idx()] + after_state.get_veg_value(from));
