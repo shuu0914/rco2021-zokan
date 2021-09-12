@@ -43,22 +43,22 @@ typedef pair<ll, ll> Pll;
 typedef uint64_t HASH_TYPE;
 
 constexpr int MAX_BUY_COUNT = 52;
-int NOMUST_CONNECT_THRESHOLD = 4;
-int START_SAKIYOMI = 259;
-int HASH_RANGE = 4;
-int HASH_STRIDE = 2;
-int HASH_POS_NUM = 8;
+constexpr int NOMUST_CONNECT_THRESHOLD = 4;
+constexpr int START_SAKIYOMI = 259;
+constexpr int HASH_RANGE = 4;
+constexpr int HASH_STRIDE = 2;
+constexpr int HASH_POS_NUM = 8;
 
-int END_HASH_AREA = 1000;
-float GAMMA_START = 0.86828118f;
-float GAMMA_END = 0.94306192f;
-float GAMMA_LOW_START = 0.68775480f;
-float GAMMA_LOW_END = 0.88487835f;
-float SUMI_WEIGHT = 0.76926073f;
-int HOHABA = 6;
+constexpr int END_HASH_AREA = 1000;
+constexpr float GAMMA_START = 0.86828118f;
+constexpr float GAMMA_END = 0.94306192f;
+constexpr float GAMMA_LOW_START = 0.68775480f;
+constexpr float GAMMA_LOW_END = 0.88487835f;
+constexpr float SUMI_WEIGHT = 0.76926073f;
+constexpr int HOHABA = 6;
 
-float MAIN_MONEY_WEIGHT = 1.82150687f;
-float GIRIGIRI_WEIGHT = 1.52897825f;
+constexpr float MAIN_MONEY_WEIGHT = 1.82150687f;
+constexpr float GIRIGIRI_WEIGHT = 1.52897825f;
 
 constexpr int MAX_HOHABA = 6;
 int BW = 15 * 2;
@@ -246,9 +246,9 @@ array<int, MAX_BUY_COUNT * 2> ruiseki_cost;
 
 int debug_final_money = 0;
 
-vector<uint64_t> checked(N*N,0), checked2(N*N,0);
-vector<vector<uint64_t>> checked4(4,vector<uint64_t>(N*N,0)),checked4_2(4,vector<uint64_t>(N*N,0));
-vector<uint16_t> ord(N*N), low(N*N,0xffff);
+array<uint64_t, N*N> checked, checked2;
+array<array<uint64_t, N*N>, 4> checked4,checked4_2;
+array<uint16_t, N*N> ord, low;
 uint16_t ord_root = (uint16_t)0 - N*N - 1;
 uint64_t check_num = 1;
 
@@ -991,6 +991,28 @@ void input(){
             TP2eval_low[i][j] = 0.0f;
         }
     }
+    rep(i,N*N){
+        checked[i] = 0;
+    }
+    rep(i,N*N){
+        checked2[i] = 0;
+    }
+    rep(UDLR,4){
+        rep(i,N*N){
+            checked4[UDLR][i] = 0;
+        }
+    }
+    rep(UDLR,4){
+        rep(i,N*N){
+            checked4_2[UDLR][i] = 0;
+        }
+    }
+    rep(i,N*N){
+        ord[i] = 0;
+    }
+    rep(i,N*N){
+        low[i] = 0xffff;
+    }
     {
         int sum = 0;
         rep(i,MAX_BUY_COUNT * 2 - 2){
@@ -1159,7 +1181,7 @@ int main(int argc, char *argv[]){
         // MAIN_MONEY_WEIGHT = stof(argv[1]);
         // GAMMA_LOW_START = stof(argv[1]);
         // GAMMA_LOW_END = stof(argv[2]);
-        GIRIGIRI_WEIGHT = stof(argv[1]);
+        // GIRIGIRI_WEIGHT = stof(argv[1]);
     }
 
     input();
