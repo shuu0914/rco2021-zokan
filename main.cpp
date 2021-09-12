@@ -233,6 +233,7 @@ struct Event{
 
 array<array<int, N*N>, T> TP2V;
 array<array<int, N*N>, T> TP2S;
+array<array<int, N*N>, T> TP2E;
 array<array<float, N*N>, T> TP2eval;
 vector<vector<Pos>> T2P(T);
 vector<vector<Event>> events(T+1);
@@ -677,7 +678,8 @@ struct BeamSearcher{
                                 if(!exist) return 0.0f;
                                 //connectしていない場合は何歩目かによって価値が変わる
                                 //Todo:50試行ではevaluate()にのみWEIGHTをかけたほうが評価値が良かったので1000試行で確認
-                                ret += TP2V[t][pp.idx()] * (must_connect ? 1 : _t + 1);
+                                //締め切りギリギリだったらちょっと"dpの評価を"高くする
+                                ret += TP2V[t][pp.idx()] * (must_connect ? 1 : _t + 1) * (TP2E[t][pp.idx()] - t <= 2 ? 1.2f : 1.0f);
                             }else{
                                 //Todo:先読みターン数
                                 //Todo:提出時にはassert外すかNDEBUG
@@ -685,7 +687,7 @@ struct BeamSearcher{
                                 assert(must_connect);
                                 ret += TP2eval[t][pp.idx()];
                                 if(exist){
-                                    ret += TP2V[t][pp.idx()];
+                                    ret += TP2V[t][pp.idx()] * (TP2E[t][pp.idx()] - t <= 2 ? 1.2f : 1.0f);
                                 }
                             }
                             return ret;
@@ -936,6 +938,11 @@ void input(){
             TP2S[i][j] = 0;
         }
     }
+    rep(i,TP2E.size()){
+        rep(j,TP2E[i].size()){
+            TP2E[i][j] = INF;
+        }
+    }
     rep(i,TP2eval.size()){
         rep(j,TP2eval[i].size()){
             TP2V[i][j] = 0.0f;
@@ -986,6 +993,7 @@ void input(){
         for(int t = s; t < e; ++t){
             TP2V[t][idx(r,c)] += v;
             TP2S[t][idx(r,c)] = s;
+            TP2E[t][idx(r,c)] = e;
             T2P[t].push_back({r,c});
             // TP2eval[t][idx(r,c)] += v;
         }
