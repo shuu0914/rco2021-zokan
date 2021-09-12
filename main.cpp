@@ -868,6 +868,9 @@ struct BeamSearcher{
             }else if(t == 900){
                 BW = 32 * 2;
             }
+            if(timer.ms() >= 1945){
+                BW = 1;
+            }
             auto& current_pq = vec_pq[t];
             // partial_sort(current_pq.begin(), current_pq.begin() + min(BW * 2, (int)current_pq.size()), current_pq.end(), greater<>());
             sort(all(current_pq), greater<>());
@@ -1164,6 +1167,7 @@ int main(int argc, char *argv[]){
 
     const auto& pa = solve();
     cout<<pa.first<<endl;
+    cerr<<"BW:"<<BW<<endl;
     cerr<<timer.ms()<<"[ms]"<<endl;
     cerr<<"score:"<<pa.second*50<<endl;
     return 0;
