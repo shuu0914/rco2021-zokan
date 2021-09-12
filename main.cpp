@@ -60,7 +60,7 @@ float MAIN_MONEY_WEIGHT = 1.82150687f;
 float GIRIGIRI_WEIGHT = 1.52897825f;
 
 constexpr int MAX_HOHABA = 6;
-int BW = 10 * 3;
+int BW = 10 * 2;
 
 uint32_t xorshift(){
     static uint32_t x = 123456789;
@@ -750,18 +750,10 @@ struct BeamSearcher{
             }
 
             assert(vec_max_val.size() == vec_max_keiro.size());
-            float max_max_val_per_turn = 0;
-            rep(i,vec_max_val.size()){
-                const float max_val_per_turn = vec_max_val[i] / vec_max_keiro.size();
-                chmax(max_max_val_per_turn, max_val_per_turn);
-            }
 
             //消すものを選ぶ
             //Todo:複数通り
             rep(i, vec_max_keiro.size()){
-                const float max_val_per_turn = vec_max_val[i] / vec_max_keiro.size();
-                constexpr float ALPHA = 0.2;
-                if(max_val_per_turn < max_max_val_per_turn * ALPHA) continue;
                 const auto& keiro = vec_max_keiro[i];
 
                 vector<Action> actions;
@@ -863,11 +855,11 @@ struct BeamSearcher{
         }
         rep(t, T){
             if(t == 700){
-                BW = 20 * 3;
+                BW = 20 * 2;
             }else if(t == 800){
-                BW = 25 * 3;
+                BW = 25 * 2;
             }else if(t == 900){
-                BW = 32 * 3;
+                BW = 32 * 2;
             }
             auto& current_pq = vec_pq[t];
             // partial_sort(current_pq.begin(), current_pq.begin() + min(BW * 2, (int)current_pq.size()), current_pq.end(), greater<>());
