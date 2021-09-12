@@ -244,11 +244,11 @@ vector<vector<Event>> events(T+1);
 
 int debug_final_money = 0;
 
-vector<uint16_t> checked(N*N,0), checked2(N*N,0);
-vector<vector<uint16_t>> checked4(4,vector<uint16_t>(N*N,0)),checked4_2(4,vector<uint16_t>(N*N,0));
+vector<uint64_t> checked(N*N,0), checked2(N*N,0);
+vector<vector<uint64_t>> checked4(4,vector<uint64_t>(N*N,0)),checked4_2(4,vector<uint64_t>(N*N,0));
 vector<uint16_t> ord(N*N), low(N*N,0xffff);
 uint16_t ord_root = (uint16_t)0 - N*N - 1;
-uint16_t check_num = 1;
+uint64_t check_num = 1;
 
 enum ActionKind{
     BUY, MOVE, PASS
@@ -740,6 +740,7 @@ struct BeamSearcher{
                 vec_max_val.emplace_back(max_val);
                 Pos p = max_pos;
                 assert(p != Pos(N*N));
+                assert(max_before_pos != Pos(N*N));
                 assert(!before_state.is_machine(max_pos));
                 vector<Pos> kei;
                 kei.reserve(_t+1);
