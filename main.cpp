@@ -57,7 +57,7 @@ float SUMI_WEIGHT = 0.76926073f;
 int HOHABA = 6;
 
 float MAIN_MONEY_WEIGHT = 1.82150687f;
-float GIRIGIRI_WEIGHT = 1.2f;
+float GIRIGIRI_WEIGHT = 1.52897825f;
 
 constexpr int MAX_HOHABA = 6;
 int BW = 10;
