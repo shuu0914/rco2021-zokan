@@ -672,7 +672,7 @@ struct BeamSearcher{
                 const int t = before_state.turn() + _t;
                 if(t >= T) break;
                 float max_val = -1;
-                Pos max_pos = {-1,-1};
+                Pos max_pos = {N*N}, max_before_pos = {N*N};
                 int max_UDLR = 0;
                 rep(UDLR,4){
                     auto& checked = checked4[UDLR];
@@ -725,6 +725,7 @@ struct BeamSearcher{
                                 max_val = (_t == 0 ? val_low : val);
                                 max_pos = pp;
                                 max_UDLR = UDLR;
+                                max_before_pos = p;
                             }
                         }
                     }
@@ -738,12 +739,17 @@ struct BeamSearcher{
 
                 vec_max_val.emplace_back(max_val);
                 Pos p = max_pos;
-                assert(p.y != -1);
+                assert(p != Pos(N*N));
+                assert(!before_state.is_machine(max_pos));
                 vector<Pos> kei;
                 kei.reserve(_t+1);
                 REP(_i, _t+1){
                     kei.emplace_back(p);
-                    p = before_pos4[max_UDLR][_i][p.idx()];
+                    if(_i == _t){
+                        p = max_before_pos;
+                    }else{
+                        p = before_pos4[max_UDLR][_i][p.idx()];
+                    }
                 }
                 reverse(all(kei));
                 vec_max_keiro.emplace_back(kei);
@@ -765,6 +771,8 @@ struct BeamSearcher{
                     //Todo:複数回購入できる可能性
                     if(after_state.count() < MAX_BUY_COUNT && after_state.can_buy()){
                         action.kind = BUY;
+                        assert(to != Pos(N*N));
+                        assert(!after_state.is_machine(to));
                         action.to = to;
                         machines.emplace_back(to);
                     }else{
@@ -790,7 +798,11 @@ struct BeamSearcher{
                             break;
                         }
                         action.kind = MOVE;
+                        assert(best_from != Pos(N*N));
                         action.from = best_from;
+                        assert(after_state.is_machine(best_from));
+                        assert(to != Pos(N*N));
+                        assert(!after_state.is_machine(to));
                         action.to = to;
                         machines.erase(find(all(machines), action.from));
                         machines.emplace_back(action.to);
