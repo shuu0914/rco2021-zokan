@@ -60,7 +60,7 @@ float MAIN_MONEY_WEIGHT = 1.82150687f;
 float GIRIGIRI_WEIGHT = 1.52897825f;
 
 constexpr int MAX_HOHABA = 6;
-int BW = 10;
+int BW = 10 * 2;
 
 uint32_t xorshift(){
     static uint32_t x = 123456789;
@@ -245,6 +245,7 @@ vector<vector<Event>> events(T+1);
 int debug_final_money = 0;
 
 vector<uint16_t> checked(N*N,0), checked2(N*N,0);
+vector<vector<uint16_t>> checked4(4,vector<uint16_t>(N*N,0)),checked4_2(4,vector<uint16_t>(N*N,0));
 vector<uint16_t> ord(N*N), low(N*N,0xffff);
 uint16_t ord_root = (uint16_t)0 - N*N - 1;
 uint16_t check_num = 1;
@@ -537,8 +538,8 @@ struct State_tmp{
     }
 };
 
-array<array<Pos, N*N>, MAX_HOHABA> before_pos;
-vector<float> dp(N*N), dp2(N*N);
+array<array<array<Pos, N*N>, MAX_HOHABA>, 4> before_pos4;
+vector<vector<float>> dp4(4,vector<float>(N*N)), dp4_2(4,vector<float>(N*N));
 
 template<typename Eval, class CenterJudger>
 struct BeamSearcher{
@@ -645,16 +646,20 @@ struct BeamSearcher{
             return;
         }
 
-        const auto func = [&](const int UDLR, const bool must_connect = true){
-            if(must_connect){
-                fill(all(checked), check_num - 2);
-                for(const auto& p : before_machines){
-                    checked[p.idx()] = check_num;
-                    dp[p.idx()] = 0;
+        const auto func = [&](const bool must_connect = true){
+            rep(UDLR,4){
+                auto& checked = checked4[UDLR];
+                auto& dp = dp4[UDLR];
+                if(must_connect){
+                    fill(all(checked), check_num - 2);
+                    for(const auto& p : before_machines){
+                        checked[p.idx()] = check_num;
+                        dp[p.idx()] = 0;
+                    }
+                }else{
+                    fill(all(checked), check_num);
+                    fill(all(dp), 0);
                 }
-            }else{
-                fill(all(checked), check_num);
-                fill(all(dp), 0);
             }
             vector<float> vec_max_val;
             vec_max_val.reserve(HOHABA);
@@ -668,56 +673,64 @@ struct BeamSearcher{
                 if(t >= T) break;
                 float max_val = -1;
                 Pos max_pos = {-1,-1};
-                for(const auto& p : POSES_ALL){
-                    if(checked[p.idx()] != before_check_num) continue;
-                    for(const Pos& pp : POSES_EDGE_DIR[UDLR][p.idx()]){
-                        if(before_state.is_machine(pp)) continue;
-                        //Todo:取得済みかどうかのチェック
-                        //Todo:累積のほうが良いかも？
-                        float val_low = 0;
-                        const float val_add = [&](){
-                            //降ってきてるはずなのに存在しない → 取得済み
-                            float ret = 0;
-                            const bool exist = TP2S[t][pp.idx()] > before_state.turn() || before_state.is_veg(pp);
-                            if(!must_connect || before_state.turn() < START_SAKIYOMI){
-                                if(!exist) return 0.0f;
-                                //connectしていない場合は何歩目かによって価値が変わる
-                                //Todo:50試行ではevaluate()にのみWEIGHTをかけたほうが評価値が良かったので1000試行で確認
-                                //締め切りギリギリだったらちょっと"dpの評価を"高くする
-                                const float val = TP2V[t][pp.idx()] * (must_connect ? 1 : _t + 1) * (TP2E[t][pp.idx()] - t <= 2 ? GIRIGIRI_WEIGHT : 1.0f);
-                                ret += val;
-                                val_low += val;
-                            }else{
-                                //Todo:先読みターン数
-                                //Todo:提出時にはassert外すかNDEBUG
-                                //Todo:must_connectではないときも先読みしたい 3が降ってくる前において、その後隣に置くことで3*2点をしたい
-                                assert(must_connect);
-                                ret += TP2eval[t][pp.idx()];
-                                val_low += TP2eval_low[t][pp.idx()];
-                                if(exist){
-                                    const float val = TP2V[t][pp.idx()] * (TP2E[t][pp.idx()] - t <= 2 ? GIRIGIRI_WEIGHT : 1.0f);
+                int max_UDLR = 0;
+                rep(UDLR,4){
+                    auto& checked = checked4[UDLR];
+                    auto& checked2 = checked4_2[UDLR];
+                    auto& dp = dp4[UDLR];
+                    auto& dp2 = dp4_2[UDLR];
+                    auto& before_pos = before_pos4[UDLR];
+                    for(const auto& p : POSES_ALL){
+                        if(checked[p.idx()] != before_check_num) continue;
+                        for(const Pos& pp : POSES_EDGE_DIR[UDLR][p.idx()]){
+                            if(before_state.is_machine(pp)) continue;
+                            //Todo:取得済みかどうかのチェック
+                            //Todo:累積のほうが良いかも？
+                            float val_low = 0;
+                            const float val_add = [&](){
+                                //降ってきてるはずなのに存在しない → 取得済み
+                                float ret = 0;
+                                const bool exist = TP2S[t][pp.idx()] > before_state.turn() || before_state.is_veg(pp);
+                                if(!must_connect || before_state.turn() < START_SAKIYOMI){
+                                    if(!exist) return 0.0f;
+                                    //connectしていない場合は何歩目かによって価値が変わる
+                                    //Todo:50試行ではevaluate()にのみWEIGHTをかけたほうが評価値が良かったので1000試行で確認
+                                    //締め切りギリギリだったらちょっと"dpの評価を"高くする
+                                    const float val = TP2V[t][pp.idx()] * (must_connect ? 1 : _t + 1) * (TP2E[t][pp.idx()] - t <= 2 ? GIRIGIRI_WEIGHT : 1.0f);
                                     ret += val;
                                     val_low += val;
+                                }else{
+                                    //Todo:先読みターン数
+                                    //Todo:提出時にはassert外すかNDEBUG
+                                    //Todo:must_connectではないときも先読みしたい 3が降ってくる前において、その後隣に置くことで3*2点をしたい
+                                    assert(must_connect);
+                                    ret += TP2eval[t][pp.idx()];
+                                    val_low += TP2eval_low[t][pp.idx()];
+                                    if(exist){
+                                        const float val = TP2V[t][pp.idx()] * (TP2E[t][pp.idx()] - t <= 2 ? GIRIGIRI_WEIGHT : 1.0f);
+                                        ret += val;
+                                        val_low += val;
+                                    }
                                 }
+                                return ret;
+                            }();
+                            const float val = val_add + dp[p.idx()];
+                            val_low += dp[p.idx()];
+                            if(checked2[pp.idx()] != before_check_num || dp2[pp.idx()] < val){
+                                dp2[pp.idx()] = val;
+                                checked2[pp.idx()] = check_num;
+                                before_pos[_t][pp.idx()] = p;
                             }
-                            return ret;
-                        }();
-                        const float val = val_add + dp[p.idx()];
-                        val_low += dp[p.idx()];
-                        if(checked2[pp.idx()] != before_check_num || dp2[pp.idx()] < val){
-                            dp2[pp.idx()] = val;
-                            checked2[pp.idx()] = check_num;
-                            before_pos[_t][pp.idx()] = p;
-                        }
-                        if((_t == 0 ? val_low : val) > max_val && val_add > 0){
-                            max_val = (_t == 0 ? val_low : val);
-                            max_pos = pp;
+                            if((_t == 0 ? val_low : val) > max_val && val_add > 0){
+                                max_val = (_t == 0 ? val_low : val);
+                                max_pos = pp;
+                                max_UDLR = UDLR;
+                            }
                         }
                     }
+                    swap(dp, dp2);
+                    swap(checked, checked2);
                 }
-
-                swap(dp, dp2);
-                swap(checked, checked2);
 
                 if(max_val == -1.0f) continue;
 
@@ -730,7 +743,7 @@ struct BeamSearcher{
                 kei.reserve(_t+1);
                 REP(_i, _t+1){
                     kei.emplace_back(p);
-                    p = before_pos[_i][p.idx()];
+                    p = before_pos4[max_UDLR][_i][p.idx()];
                 }
                 reverse(all(kei));
                 vec_max_keiro.emplace_back(kei);
@@ -793,13 +806,9 @@ struct BeamSearcher{
             }
         };
 
-        rep(i,4){
-            func(i);
-        }
+        func();
         if(before_state.count() <= NOMUST_CONNECT_THRESHOLD){
-            rep(i,4){
-                func(i,false);
-            }
+            func(false);
         }
     }
 
@@ -846,11 +855,11 @@ struct BeamSearcher{
         }
         rep(t, T){
             if(t == 700){
-                BW = 20;
+                BW = 20 * 2;
             }else if(t == 800){
-                BW = 25;
+                BW = 25 * 2;
             }else if(t == 900){
-                BW = 32;
+                BW = 32 * 2;
             }
             auto& current_pq = vec_pq[t];
             // partial_sort(current_pq.begin(), current_pq.begin() + min(BW * 2, (int)current_pq.size()), current_pq.end(), greater<>());
@@ -964,9 +973,11 @@ void input(){
             TP2eval_low[i][j] = 0.0f;
         }
     }
-    rep(i,before_pos.size()){
-        rep(j,before_pos[i].size()){
-            before_pos[i][j] = {0};
+    rep(UDLR,4){
+        rep(i,before_pos4.size()){
+            rep(j,before_pos4[i].size()){
+                before_pos4[UDLR][i][j] = {0};
+            }
         }
     }
     rep(y,N){
