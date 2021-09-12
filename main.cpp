@@ -43,7 +43,7 @@ typedef pair<ll, ll> Pll;
 typedef uint64_t HASH_TYPE;
 
 constexpr int MAX_BUY_COUNT = 52;
-int NOMUST_CONNECT_THRESHOLD = 3;
+int NOMUST_CONNECT_THRESHOLD = 4;
 int START_SAKIYOMI = 259;
 int HASH_RANGE = 4;
 int HASH_STRIDE = 2;
