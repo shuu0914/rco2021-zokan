@@ -447,7 +447,6 @@ struct State{
             }
         }
 
-        //Todo:根の関節点判定にバグないかチェック
         if(is_root && root_count >= 2){
             is_kansetsu_[p.idx()] = true;
         }
@@ -469,7 +468,6 @@ struct State{
             dfs(base_p, count, sum_val, sum_reserve_val, true);
             count -= ord_root;
             money += count * sum_val;
-            //Todo:center_countをかけるタイミングをちゃんと
             reserve_money += count * sum_reserve_val;
             chmax(max_connect_count, count);
 
@@ -657,7 +655,6 @@ struct BeamSearcher{
             rep(_t, HOHABA){
                 const auto before_check_num = check_num;
                 check_num += 2;
-                //Todo:あってる？
                 const int t = before_state.turn() + _t;
                 if(t >= T) break;
                 float max_val = -1;
@@ -673,8 +670,6 @@ struct BeamSearcher{
                         if(checked[p.idx()] != before_check_num) continue;
                         for(const Pos& pp : POSES_EDGE_DIR[UDLR][p.idx()]){
                             if(before_state.is_machine(pp)) continue;
-                            //Todo:取得済みかどうかのチェック
-                            //Todo:累積のほうが良いかも？
                             float val_low = 0;
                             const float val_add = [&](){
                                 //降ってきてるはずなのに存在しない → 取得済み
@@ -689,7 +684,6 @@ struct BeamSearcher{
                                     ret += val;
                                     val_low += val;
                                 }else{
-                                    //Todo:先読みターン数
                                     //Todo:提出時にはassert外すかNDEBUG
                                     //Todo:must_connectではないときも先読みしたい 3が降ってくる前において、その後隣に置くことで3*2点をしたい
                                     assert(must_connect);
@@ -758,7 +752,6 @@ struct BeamSearcher{
                 State after_state = before_state;
                 for(const auto& to : keiro){
                     Action action;
-                    //Todo:複数回購入できる可能性
                     if(after_state.count() < MAX_BUY_COUNT && after_state.can_buy()){
                         action.kind = BUY;
                         assert(to != Pos(N*N));
@@ -804,10 +797,6 @@ struct BeamSearcher{
                     actions.emplace_back(action);
                     assert(after_state.can_action(action));
                     after_state.do_action(action, machines);
-                    //Todo:2手以上を突っ込む方法
-                    // assert(HOHABA == 1);
-                    //Todo:breakしない
-                    // break;
                 }
                 push_actions(std::move(actions), std::move(after_state));
             }
