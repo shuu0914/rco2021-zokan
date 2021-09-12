@@ -853,7 +853,7 @@ struct BeamSearcher{
         rep(i,T+1){
             //4は{UD}*{LR}の組み合わせ数
             //2はmust_connectかどうかで2通り
-            vec_pq[i].reserve(BW * MAX_HOHABA * 4 * 2);
+            vec_pq[i].reserve(BW * MAX_HOHABA * 2);
         }
         logs.reserve((int)1e7);
         {
