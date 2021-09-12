@@ -276,10 +276,9 @@ ostream& operator<<(ostream& os, const vector<Action>& actions){
     return os;
 }
 
-vector<Pos> POSES_ALL;
+array<Pos, N*N> POSES_ALL;
 vector<vector<Pos>> POSES_EDGE(N*N);
 vector<vector<vector<Pos>>> POSES_EDGE_DIR(4, vector<vector<Pos>>(N*N));
-vector<Pos> POSES_HASH;
 
 struct State{
     int money = 1;
@@ -956,6 +955,9 @@ struct BeamSearcher{
 void input(){
     int _; cin>>_>>_>>_;
     timer.start();
+    rep(i,N*N){
+        POSES_ALL[i] = {i};
+    }
     rep(i,TP2V.size()){
         rep(j,TP2V[i].size()){
             TP2V[i][j] = 0;
@@ -1019,7 +1021,6 @@ void input(){
     }
     rep(y,N){
         rep(x,N){
-            POSES_ALL.push_back({y,x});
             const Pos&& p = {y,x};
             for(int dy = -1; dy <= 1; dy++){
                 for(int dx = -1; dx <= 1; dx++){
@@ -1039,7 +1040,6 @@ void input(){
             }
         }
     }
-    POSES_ALL.shrink_to_fit();
     POSES_EDGE.shrink_to_fit();
     POSES_EDGE_DIR.shrink_to_fit();
     // rep(t,T+1){
