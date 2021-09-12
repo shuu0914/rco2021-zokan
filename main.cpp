@@ -42,7 +42,7 @@ typedef pair<int, int> Pii;
 typedef pair<ll, ll> Pll;
 typedef uint64_t HASH_TYPE;
 
-int MAX_BUY_COUNT = 50;
+int MAX_BUY_COUNT = 52;
 int NOMUST_CONNECT_THRESHOLD = 3;
 int START_SAKIYOMI = 259;
 int HASH_STRIDE = 2;
@@ -762,7 +762,7 @@ struct BeamSearcher{
                 for(const auto& to : keiro){
                     Action action;
                     //Todo:複数回購入できる可能性
-                    if(after_state.count() <= MAX_BUY_COUNT && after_state.can_buy()){
+                    if(after_state.count() < MAX_BUY_COUNT && after_state.can_buy()){
                         action.kind = BUY;
                         action.to = to;
                     }else{
