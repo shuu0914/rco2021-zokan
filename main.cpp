@@ -612,7 +612,8 @@ struct BeamSearcher{
                 if(before_state.is_machine(p)){
                     from = p;
                 }
-                const int val = before_state.get_veg_value(p);
+                const bool is_sumi = p.idx() < N || p.idx() >= N*(N-1) || (p.idx()&0xf) == 0 || (p.idx()&0xf) == N-1;
+                const int val = before_state.get_veg_value(p) * N*N + is_sumi;
                 if(val > max_val){
                     max_val = val;
                     to = p;
