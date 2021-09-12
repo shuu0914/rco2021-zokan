@@ -40,12 +40,12 @@ using namespace std;
 #define all(v) v.begin(), v.end()
 typedef pair<int, int> Pii;
 typedef pair<ll, ll> Pll;
-typedef uint16_t HASH_TYPE;
+typedef uint64_t HASH_TYPE;
 
 int MAX_BUY_COUNT = 50;
 int NOMUST_CONNECT_THRESHOLD = 3;
 int START_SAKIYOMI = 259;
-int HASH_STRIDE = 4;
+int HASH_STRIDE = 2;
 int HASH_POS_NUM = 8;
 
 int END_HASH_AREA = 1000;
