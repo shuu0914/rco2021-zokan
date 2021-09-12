@@ -281,8 +281,7 @@ vector<vector<Pos>> POSES_EDGE(N*N);
 vector<vector<vector<Pos>>> POSES_EDGE_DIR(4, vector<vector<Pos>>(N*N));
 vector<Pos> POSES_HASH;
 
-template<class CenterJudger>
-struct State_tmp{
+struct State{
     int money = 1;
     int t = 0;
     int machine_count = 0;
@@ -292,7 +291,7 @@ struct State_tmp{
     float reserve_money = 0;
     int max_connect_count = 0;
 
-    State_tmp(){
+    State(){
         for(const auto& p : T2P[0]){
             is_vegs[p.idx()] = true;
         }
@@ -533,9 +532,8 @@ struct State_tmp{
 array<array<array<Pos, N*N>, MAX_HOHABA>, 4> before_pos4;
 vector<vector<float>> dp4(4,vector<float>(N*N)), dp4_2(4,vector<float>(N*N));
 
-template<typename Eval, class CenterJudger>
+template<typename Eval>
 struct BeamSearcher{
-    using State = State_tmp<CenterJudger>;
     struct Log{
         State state;
         Action action;
@@ -1130,11 +1128,10 @@ void input(){
     }
 }
 
-template<class CenterJudger>
 pair<vector<Action>, int> solve(){
-    State_tmp<CenterJudger> first_state_;
+    State first_state_;
     first_state_.money = 1;
-    BeamSearcher<float, CenterJudger> bs_er(first_state_);
+    BeamSearcher<float> bs_er(first_state_);
     auto&& ans = bs_er.solve();
     cerr<<timer.ms()<<"[ms]"<<endl;
     const int final_money = debug_final_money;
@@ -1142,10 +1139,6 @@ pair<vector<Action>, int> solve(){
     //Todo: このreturnは不要なら消す
     return std::make_pair(std::forward<decltype(ans)>(ans), final_money);
 }
-
-struct Y14{
-
-};
 
 int main(int argc, char *argv[]){
     fast_io;
@@ -1170,27 +1163,7 @@ int main(int argc, char *argv[]){
 
     input();
 
-    // const auto pa1 = solve<Y14>();
-    // const auto pa2 = solve<X14>();
-    // const auto pa3 = solve<Y12>();
-    // const auto pa4 = solve<X12>();
-    // constexpr int num = 4;
-    // pair<vector<Action>, int> pairs[num] = {pa1,pa2,pa3,pa4};
-
-    // int best_i = 0;
-    // int best_score = 0;
-    // rep(i,num){
-    //     const auto& pa = pairs[i];
-    //     const int score = pa.second;
-    //     if(score > best_score){
-    //         best_i = i;
-    //         best_score = score;
-    //     }
-    // }
-    // cout<<pairs[best_i].first<<endl;
-    // cerr<<"score:"<<best_score*50<<endl;
-
-    const auto& pa = solve<Y14>();
+    const auto& pa = solve();
     cout<<pa.first<<endl;
     cerr<<"score:"<<pa.second*50<<endl;
     return 0;
